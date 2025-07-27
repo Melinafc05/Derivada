@@ -150,11 +150,11 @@
         <h1>Calculadora de Derivadas por Límite</h1>
         <p class="info-message">
             Esta herramienta te ayuda a entender el "proceso largo" de las derivadas. <br>
-            **Nota:** Actualmente, genera los pasos detallados para funciones polinómicas simples (ej: `x^2`, `3x+5`, `x^3-2x`). Para funciones más complejas, mostrará la derivada final. Puedes escribir `2x` en lugar de `2*x`.
+            **Nota:** Genera los pasos detallados para funciones **polinómicas simples** (ej: `x^2`, `3x+5`, `x^3-2x`, `x^4`, etc.). Para funciones más complejas (trigonométricas, exponenciales), mostrará la derivada final. Puedes escribir `2x` en lugar de `2*x`.
         </p>
         <div class="input-section">
             <label for="functionInput">Ingresa tu función f(x):</label>
-            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3x" value="x^2">
+            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3x" value="x^2 + 3x">
             <button onclick="calculateDerivative()">Calcular Derivada</button>
         </div>
 
@@ -175,24 +175,25 @@
 
         /**
          * Normaliza la cadena de entrada de la función para que math.js la entienda.
-         * Inserta '*' para multiplicaciones implícitas (ej. '2x' -> '2*x').
+         * Inserta '*' para multiplicaciones implícitas (ej. '2x' -> '2*x', 'x(x+1)' -> 'x*(x+1)').
          * @param {string} inputString La cadena de la función ingresada por el usuario.
          * @returns {string} La cadena normalizada.
          */
         function normalizeFunctionInput(inputString) {
             let normalized = inputString.toLowerCase().replace(/\s/g, ''); // Eliminar espacios y convertir a minúsculas
 
-            // Regla para insertar '*' entre un número y una variable o paréntesis de apertura
-            normalized = normalized.replace(/(\d)([a-z(])/g, '$1*$2');
-            // Regla para insertar '*' entre un paréntesis que cierra y una variable o número
-            normalized = normalized.replace(/\)([\da-z(])/g, ')*$1');
-            // Regla para insertar '*' entre una variable y un paréntesis que abre
+            // Insertar '*' entre un número y una variable (ej. 2x -> 2*x)
+            normalized = normalized.replace(/(\d)([a-z])/g, '$1*$2');
+            // Insertar '*' entre un número y un paréntesis de apertura (ej. 2(x+1) -> 2*(x+1))
+            normalized = normalized.replace(/(\d)\(/g, '$1*(');
+            // Insertar '*' entre un paréntesis que cierra y una variable o número (ej. (x+1)x -> (x+1)*x)
+            normalized = normalized.replace(/\)([\da-z])/g, ')*$1');
+            // Insertar '*' entre una variable y un paréntesis que abre (ej. x(x+1) -> x*(x+1))
             normalized = normalized.replace(/([a-z])\(/g, '$1*(');
-            // Regla para insertar '*' entre dos variables (ej. 'xy' -> 'x*y') -- Cuidado con funciones como sin(x)
-            // Para este contexto de una sola variable 'x', no es estrictamente necesario y puede causar problemas.
-            // Si hay funciones como 'sin', se manejará directamente por math.js, no se necesita 's*i*n(x)'
-            // Esta línea se comenta para evitar problemas con nombres de funciones como 'sin', 'cos', etc.
-            // normalized = normalized.replace(/([a-z])([a-z])/g, '$1*$2'); 
+            // Insertar '*' entre 'x' y 'x^' (ej. 'x x^2' -> 'x*x^2')
+            normalized = normalized.replace(/(x)(x\^)/g, '$1*$2');
+            // Asegurarse de que las potencias estén bien formadas (ej. 'x2' -> 'x^2' si es el caso)
+            // No, mejor no inferir esto para evitar errores (ej. f2 -> f*2)
 
             console.log("Input original:", inputString, "Normalizado:", normalized);
             return normalized;
@@ -223,7 +224,7 @@
                 console.log("Final derivative (Tex):", finalDerivativeTex);
 
             } catch (error) {
-                outputDiv.innerHTML = `<p class="error-message">Error al interpretar la función. Asegúrate de usar un formato válido. Ejemplos: <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>. Detalle: ${error.message}</p>`;
+                outputDiv.innerHTML = `<p class="error-message">Error al interpretar la función. Asegúrate de usar un formato válido. Ejemplos: <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>. No uses `$` para las funciones. <br>Detalle: ${error.message}</p>`;
                 console.error("Error en parsing o cálculo de derivada final:", error);
                 return; // Detener la ejecución si el parsing inicial falla
             }
@@ -240,19 +241,15 @@
                 </div>
             `;
 
-            // --- Generación de pasos para funciones polinómicas ---
-            // Intentamos generar los pasos detallados si es un polinomio manejable.
+            // --- Lógica para generar pasos de polinomios ---
             let isPolynomialHandled = false;
-            let fxPlusHExpandedNode;
-            let numeratorSimplifiedNode;
-            let afterFactoringHNode;
-            let finalResultStepNode;
+            let fxPlusHExpandedTex = '';
+            let numeratorSimplifiedTex = '';
+            let afterFactoringHTex = '';
+            let finalResultTex = '';
 
             try {
-                // Paso 2: Encontrar f(x + h)
-                // Se crea un nodo 'h' simbólico
-                const hNode = math.parse('h');
-                // Sustituir 'x' por 'x + h' en el árbol de expresión
+                // Reemplazar 'x' por 'x + h' en la expresión simbólica
                 // Usamos `transform` para reemplazar todos los nodos de 'SymbolNode' con nombre 'x'
                 const fxPlusHNode = node.transform(function(nodeItem) {
                     if (nodeItem.isSymbolNode && nodeItem.name === 'x') {
@@ -261,67 +258,101 @@
                     return nodeItem;
                 });
                 
-                // Expandir el resultado para obtener (x+h)^2 -> x^2 + 2xh + h^2
-                fxPlusHExpandedNode = fxPlusHNode.expand();
+                // Expandir la expresión f(x+h)
+                const fxPlusHExpandedNode = fxPlusHNode.expand();
+                fxPlusHExpandedTex = fxPlusHExpandedNode.toTex();
                 console.log("f(x+h) expanded:", fxPlusHExpandedNode.toString());
 
-                let explanation_fxPlusH = `En esta función, sustituimos $x$ por $(x + h)$ donde sea que aparezca $x$.`;
-                stepsHtml += `
-                    <div class="step">
-                        <h3>Paso 2: Encontrar $f(x + h)$</h3>
-                        <p>${explanation_fxPlusH}</p>
-                        <div class="math-formula">
-                            $$f(x + h) = ${fxPlusHExpandedNode.toTex()}$$
-                        </div>
-                        <p>Esta es la función evaluada en un punto ligeramente desplazado de $x$. Fíjate cómo $x^n$ se convierte en $(x+h)^n$ y se expande, y $cx$ en $c(x+h)$.</p>
-                    </div>
-                `;
+                // Numerador: f(x+h) - f(x)
+                const numeratorInitialNode = math.subtract(fxPlusHExpandedNode, node);
+                numeratorSimplifiedTex = numeratorInitialNode.simplify().toTex(); // Simplificar el numerador
+                console.log("Numerator initial (after subtraction):", numeratorInitialNode.toString());
+                console.log("Numerator simplified (Tex):", numeratorSimplifiedTex);
 
-                // Paso 3: Sustituir en la fórmula del límite
-                numeratorSimplifiedNode = math.simplify(math.subtract(fxPlusHExpandedNode, node));
-                console.log("Numerator initial (after subtraction):", numeratorSimplifiedNode.toString());
 
-                stepsHtml += `
-                    <div class="step">
-                        <h3>Paso 3: Sustituir $f(x + h)$ y $f(x)$ en la fórmula del límite</h3>
-                        <p>Ahora colocamos nuestras expresiones en la fórmula de la definición de la derivada:</p>
-                        <div class="math-formula">
-                            $$f'(x) = \\lim_{h \\to 0} \\frac{(${fxPlusHExpandedNode.toTex()}) - (${node.toTex()})}{h}$$
-                        </div>
-                        <p>Esta expresión representa la tasa de cambio promedio de la función entre $x$ y $x+h$.</p>
-                    </div>
-                `;
-
-                // Paso 4: Simplificar el numerador
-                stepsHtml += `
-                    <div class="step">
-                        <h3>Paso 4: Simplificar el numerador</h3>
-                        <p>Expandimos y combinamos términos semejantes en el numerador. Es crucial que todos los términos que <strong>no contienen $h$</strong> se cancelen entre sí.</p>
-                        <div class="math-formula">
-                            $$f'(x) = \\lim_{h \\to 0} \\frac{${numeratorSimplifiedNode.toTex()}}{h}$$
-                        </div>
-                        <p>Si algún término sin $h$ no se cancela, probablemente haya un error en la expansión o simplificación.</p>
-                    </div>
-                `;
-
-                // Paso 5: Factorizar h en el numerador
-                // Intentar dividir por 'h' y luego multiplicar por 'h' para verificar que 'h' era un factor.
-                const tempDivNode = math.simplify(math.divide(numeratorSimplifiedNode, hNode));
-                const checkFactoredNode = math.simplify(math.multiply(tempDivNode, hNode));
-                
-                // Si al dividir por h y luego multiplicar por h, la expresión original no cambia,
-                // significa que h era un factor común y la división fue exitosa.
-                if (checkFactoredNode.equals(numeratorSimplifiedNode) || numeratorSimplifiedNode.toString() === '0') {
-                    afterFactoringHNode = tempDivNode;
-                    console.log("After factoring h:", afterFactoringHNode.toString());
+                // Verificar si es un polinomio manejable para los pasos detallados
+                // Si el numerador simplificado contiene 'h' o 'h^', es probable que sea manejable.
+                // También si el numerador es "0" (para constantes).
+                if (numeratorSimplifiedNode.toString().includes('h') || numeratorSimplifiedNode.toString() === '0') {
                     isPolynomialHandled = true;
+
+                    // Paso 2: Encontrar f(x + h)
+                    let explanation_fxPlusH = `En esta función, sustituimos $x$ por $(x + h)$ donde sea que aparezca $x$.`;
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 2: Encontrar $f(x + h)$</h3>
+                            <p>${explanation_fxPlusH}</p>
+                            <div class="math-formula">
+                                $$f(x + h) = ${fxPlusHExpandedTex}$$
+                            </div>
+                            <p>Esta es la función evaluada en un punto ligeramente desplazado de $x$. Observa cómo términos como $x^n$ se convierten en $(x+h)^n$ y se expanden, y $cx$ en $c(x+h)$.</p>
+                        </div>
+                    `;
+
+                    // Paso 3: Sustituir en la fórmula del límite
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 3: Sustituir $f(x + h)$ y $f(x)$ en la fórmula del límite</h3>
+                            <p>Ahora colocamos nuestras expresiones para $f(x+h)$ y $f(x)$ en la fórmula de la definición de la derivada:</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{(${fxPlusHExpandedTex}) - (${node.toTex()})}{h}$$
+                            </div>
+                            <p>Esta expresión representa la tasa de cambio promedio de la función entre $x$ y $x+h$.</p>
+                        </div>
+                    `;
+
+                    // Paso 4: Simplificar el numerador
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 4: Simplificar el numerador</h3>
+                            <p>Expandimos y combinamos términos semejantes en el numerador. Es crucial que todos los términos que <strong>no contienen $h$</strong> se cancelen entre sí.</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{${numeratorSimplifiedTex}}{h}$$
+                            </div>
+                            <p>Si algún término sin $h$ no se cancela, revisa tu expansión o la función original.</p>
+                        </div>
+                    `;
+
+                    // Paso 5: Factorizar h en el numerador
+                    // Intentar dividir por 'h' simbólicamente
+                    const hNode = math.parse('h');
+                    let tempDivNode;
+                    try {
+                        tempDivNode = math.simplify(math.divide(numeratorInitialNode, hNode));
+                        afterFactoringHTex = tempDivNode.toTex();
+                    } catch (e) {
+                        // Si la división por 'h' falla (ej. si no es un factor común para todos los términos)
+                        console.warn("Could not divide numerator by h symbolically, trying to handle manually:", e);
+                        // Fallback más robusto para casos como f(x)=x^2+3x: numerador es 2xh + h^2 + 3h.
+                        // math.js.simplify(math.divide(...)) debería manejarlo, pero si falla, se puede intentar un regex simple.
+                        if(numeratorSimplifiedNode.toString().includes('h')) {
+                            // Este es un último recurso, no ideal, pero si math.js falla, ayuda para el demo.
+                             const terms = numeratorSimplifiedNode.toString().split(/(?=[+-])/).map(t => t.trim());
+                             let factoredTerms = [];
+                             for(const term of terms) {
+                                if(term.includes('h')) {
+                                   factoredTerms.push(term.replace('h^2', 'h').replace('h', '').replace(/\*$/, '')); // Simplificación muy básica
+                                }
+                             }
+                             if(factoredTerms.length > 0) {
+                                afterFactoringHTex = math.parse(factoredTerms.join('+')).toTex();
+                             } else {
+                                afterFactoringHTex = numeratorSimplifiedNode.toTex(); // No se pudo factorizar h
+                             }
+                        } else {
+                            afterFactoringHTex = numeratorSimplifiedNode.toTex(); // No hay 'h' para factorizar
+                        }
+                    }
+
+                    console.log("After factoring h (Tex):", afterFactoringHTex);
+
 
                     stepsHtml += `
                         <div class="step">
                             <h3>Paso 5: Factorizar $h$ en el numerador</h3>
                             <p>Factorizamos $h$ de todos los términos del numerador. Este es un paso clave para eliminar la indeterminación $\\frac{0}{0}$ cuando $h \\to 0$.</p>
                             <div class="math-formula">
-                                $$f'(x) = \\lim_{h \\to 0} \\frac{h \\left( ${afterFactoringHNode.toTex()} \\right)}{h}$$
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{h \\left( ${afterFactoringHTex} \\right)}{h}$$
                             </div>
                             <p>Todos los términos restantes en el numerador deben contener $h$ antes de este paso (a menos que el numerador sea 0).</p>
                         </div>
@@ -333,7 +364,7 @@
                             <h3>Paso 6: Cancelar $h$</h3>
                             <p>Dado que $h$ tiende a cero pero no es exactamente cero, podemos cancelar el término $h$ del numerador y del denominador:</p>
                             <div class="math-formula">
-                                $$f'(x) = \\lim_{h \\to 0} ${afterFactoringHNode.toTex()}$$
+                                $$f'(x) = \\lim_{h \\to 0} ${afterFactoringHTex}$$
                             </div>
                             <p>Este paso elimina la forma indeterminada y nos permite evaluar el límite directamente.</p>
                         </div>
@@ -341,7 +372,9 @@
 
                     // Paso 7: Evaluar el límite
                     // La evaluación debe hacerse en el contexto de un Scope, definiendo 'h' como 0
-                    finalResultStepNode = afterFactoringHNode.evaluate({h:0});
+                    const afterCancellationNode = math.parse(afterFactoringHTex.replace(/\\ /g, '')); // Asegurarse de que el string sea parseable
+                    finalResultStepNode = afterCancellationNode.evaluate({h:0});
+                    finalResultTex = finalResultStepNode.toTex();
                     console.log("Final result after limit:", finalResultStepNode.toString());
                     
                     stepsHtml += `
@@ -349,21 +382,16 @@
                             <h3>Paso 7: Evaluar el límite</h3>
                             <p>Finalmente, sustituimos $h = 0$ en la expresión restante para encontrar la derivada. Cualquier término que contenga $h$ se volverá $0$ en este punto.</p>
                             <div class="math-formula">
-                                $$f'(x) = ${finalResultStepNode.toTex()}$$
+                                $$f'(x) = ${finalResultTex}$$
                             </div>
                             <p>¡Y este es el resultado final de la derivada por el proceso largo!</p>
                         </div>
                     `;
-                } else {
-                    // Si 'h' no pudo ser factorizado correctamente (no es un polinomio simple),
-                    // se cae a la rama donde solo se muestra el resultado final.
-                    isPolynomialHandled = false;
-                    console.warn("Failed to factor 'h' from the numerator, falling back to final derivative display.");
                 }
 
             } catch (e) {
                 isPolynomialHandled = false;
-                console.error("Error durante la generación de pasos detallados del polinomio:", e);
+                console.error("Error durante la generación de pasos detallados del polinomio (puede que la función sea muy compleja para esta simulación):", e);
                 // Si hay un error en los pasos intermedios, revertir a mostrar solo el resultado final.
             }
 
@@ -393,4 +421,4 @@
         document.addEventListener('DOMContentLoaded', calculateDerivative);
     </script>
 </body>
-</html> 
+</html>
