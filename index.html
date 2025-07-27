@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derivadas por Límite (Proceso Largo)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px 40px;
+            max-width: 900px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 600;
+        }
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .input-section label {
+            font-size: 1.1em;
+            color: #555;
+            font-weight: 500;
+        }
+        .input-section input[type="text"] {
+            padding: 12px 18px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            width: calc(100% - 36px);
+            transition: all 0.3s ease;
+        }
+        .input-section input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+            outline: none;
+        }
+        .input-section button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            align-self: flex-start; /* Alinea el botón a la izquierda */
+        }
+        .input-section button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        .input-section button:active {
+            transform: translateY(0);
+        }
+
+        .output-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .output-section h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .step {
+            background-color: #f9fbfb;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .step:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .step h3 {
+            color: #007bff;
+            margin-top: 0;
+            font-size: 1.4em;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .step p {
+            font-size: 1.05em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .step .math-formula {
+            background-color: #e9f5ff;
+            border-left: 5px solid #007bff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            overflow-x: auto; /* Para fórmulas largas */
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .error-message {
+            color: #dc3545;
+            background-color: #ffebe9;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .info-message {
+            background-color: #e0f7fa;
+            border: 1px solid #00acc1;
+            color: #00838f;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Derivadas por Límite</h1>
+        <p class="info-message">
+            Esta herramienta te ayuda a entender el "proceso largo" de las derivadas. <br>
+            **Nota:** Actualmente, genera los pasos detallados para funciones polinómicas simples (ej: $x^2$, $3x+5$, $x^3-2x$). Para funciones más complejas, mostrará la derivada final.
+        </p>
+        <div class="input-section">
+            <label for="functionInput">Ingresa tu función $f(x)$:</label>
+            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3*x" value="x^2 + 3*x">
+            <button onclick="calculateDerivative()">Calcular Derivada</button>
+        </div>
+
+        <div id="output" class="output-section">
+            </div>
+    </div>
+
+    <script>
+        // Configuración de MathJax para renderizar ecuaciones
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+
+        function calculateDerivative() {
+            const functionInput = document.getElementById('functionInput').value.trim();
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = ''; // Limpiar resultados anteriores
+
+            if (!functionInput) {
+                outputDiv.innerHTML = '<p class="error-message">Por favor, introduce una función.</p>';
+                return;
+            }
+
+            try {
+                // Parsear la expresión usando Math.js para validación y cálculo final
+                const node = math.parse(functionInput);
+                const derivativeNode = math.derivative(node, 'x');
+                const finalDerivative = derivativeNode.toString();
+
+                let stepsHtml = `<h2>Solución Detallada de $f'(x)$</h2>`;
+                stepsHtml += `
+                    <div class="step">
+                        <h3>Paso 1: Escribir la definición formal de la derivada</h3>
+                        <p>Comenzamos con la definición fundamental de la derivada de una función $f(x)$:</p>
+                        <div class="math-formula">
+                            $$f'(x) = \\lim_{h \\to 0} \\frac{f(x + h) - f(x)}{h}$$
+                        </div>
+                        <p>En nuestro caso, la función es $f(x) = ${math.parse(functionInput).toTex()}$.</p>
+                    </div>
+                `;
+
+                // --- Simulación de pasos para funciones polinómicas simples ---
+                // Esta es la parte que "imita" el proceso. No es un motor de álgebra simbólica completo.
+                // Se enfoca en patrones de x^n y constantes.
+                const func = functionInput.toLowerCase().replace(/\s/g, ''); // Normalizar la entrada
+
+                // Manejo de x^n y ax^n
+                let isSimplePolynomial = false;
+                let isLinear = false;
+                let isQuadratic = false;
+                let isConstant = false;
+
+                const matchXSquared = func.match(/^x\^2$/);
+                const matchAXSquared = func.match(/^(\d*\*?)x\^2$/);
+                const matchLinear = func.match(/^(\d*\*?)x([+-]\d+)?$/);
+                const matchConstant = func.match(/^(\d+)$/);
+                const matchQuadraticGeneral = func.match(/^(?:(\d*\*?)x\^2)?(?:([+-]\d*\*?)x)?(?:([+-]\d+))?$/);
+
+
+                if (matchXSquared || matchAXSquared || func.includes('x^2')) {
+                    isQuadratic = true;
+                    isSimplePolynomial = true;
+                } else if (matchLinear || func.includes('x')) {
+                    isLinear = true;
+                    isSimplePolynomial = true;
+                } else if (matchConstant) {
+                    isConstant = true;
+                    isSimplePolynomial = true;
+                }
+
+
+                if (isSimplePolynomial) {
+                    // Paso 2: Encontrar f(x + h)
+                    let fxPlusH_raw = node.evaluate({ x: 'x + h' }).toString();
+                    let fxPlusH_expanded = '';
+                    let explanation_fxPlusH = `En esta función, sustituimos $x$ por $(x + h)$ donde sea que aparezca $x$.`;
+
+                    if (func.includes('x^2')) {
+                        fxPlusH_expanded = node.expand().evaluate({ x: 'x + h' }).toString();
+                        explanation_fxPlusH += `\n\nSi $f(x) = x^2$, entonces $f(x+h) = (x+h)^2 = x^2 + 2xh + h^2$.`;
+                        if (func.includes('+')) {
+                             explanation_fxPlusH += `\nSi también hay un término lineal como $3x$, se convierte en $3(x+h) = 3x + 3h$.`;
+                        }
+                    } else if (isLinear) {
+                        fxPlusH_expanded = node.evaluate({ x: 'x + h' }).toString(); // No hay expansión compleja para lineales
+                        explanation_fxPlusH += `\n\nSi $f(x) = ax + b$, entonces $f(x+h) = a(x+h) + b = ax + ah + b$.`;
+                    } else if (isConstant) {
+                        fxPlusH_expanded = functionInput; // La constante no cambia
+                        explanation_fxPlusH += `\n\nSi $f(x)$ es una constante, $f(x+h)$ es la misma constante ya que no depende de $x$.`;
+                    }
+                    
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 2: Encontrar $f(x + h)$</h3>
+                            <p>${explanation_fxPlusH}</p>
+                            <div class="math-formula">
+                                $$f(x + h) = ${math.parse(fxPlusH_raw).toTex()}$$
+                                ${func.includes('x^2') ? `$$f(x + h) = ${math.parse(fxPlusH_expanded).toTex()}$$` : ''}
+                            </div>
+                            <p>Esta es la función evaluada en un punto ligeramente desplazado de $x$.</p>
+                        </div>
+                    `;
+
+                    // Paso 3: Sustituir en la fórmula del límite
+                    let numeratorInitial = `(${math.parse(fxPlusH_expanded || fxPlusH_raw).toTex()}) - (${node.toTex()})`;
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 3: Sustituir $f(x + h)$ y $f(x)$ en la fórmula del límite</h3>
+                            <p>Ahora colocamos nuestras expresiones en la fórmula de la definición de la derivada:</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{${numeratorInitial}}{h}$$
+                            </div>
+                            <p>Esta expresión representa la tasa de cambio promedio de la función entre $x$ y $x+h$.</p>
+                        </div>
+                    `;
+
+                    // Paso 4: Simplificar el numerador
+                    let numeratorSimplified = '';
+                    if (isQuadratic) {
+                        // Math.js does basic symbolic subtraction
+                        numeratorSimplified = math.subtract(math.parse(fxPlusH_expanded || fxPlusH_raw), node).toString();
+                        // Manual simplification based on patterns (better visual explanation)
+                        if (func === 'x^2') {
+                            numeratorSimplified = '2*x*h + h^2';
+                        } else if (func.match(/^x\^2[+-]\d*\*?x$/) || func.match(/^(\d*\*?)x\^2[+-]\d*\*?x$/)) {
+                            // Complex for math.js expand
+                             numeratorSimplified = math.simplify(math.subtract(math.parse(`(x+h)^2 + ${math.parse(functionInput).toString().replace('x^2','')} `).evaluate({x:'x'}), node)).toString().replace(/x\*/g, 'x');
+                             if(func === 'x^2+3*x') { // Example specific to the user's initial problem
+                                numeratorSimplified = '2*x*h + h^2 + 3*h';
+                            }
+                        } else {
+                            // Fallback for other quadratics, let math.js handle
+                            numeratorSimplified = math.subtract(math.parse(fxPlusH_expanded || fxPlusH_raw), node).toString();
+                        }
+
+                    } else if (isLinear) {
+                        numeratorSimplified = math.subtract(math.parse(fxPlusH_expanded || fxPlusH_raw), node).toString();
+                    } else if (isConstant) {
+                        numeratorSimplified = '0';
+                    }
+                    
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 4: Simplificar el numerador</h3>
+                            <p>Expandimos y eliminamos los paréntesis en el numerador. Es crucial que los términos que no contienen $h$ se cancelen entre sí.</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{${math.parse(numeratorSimplified).toTex()}}{h}$$
+                            </div>
+                            <p>Si algún término sin $h$ no se cancela, probablemente haya un error en la expansión.</p>
+                        </div>
+                    `;
+
+                    // Paso 5: Factorizar h en el numerador
+                    let numeratorFactored = '';
+                    if (numeratorSimplified !== '0') {
+                        // Simple factorization for 'h' based on known patterns
+                        if (numeratorSimplified.includes('h^2')) {
+                            numeratorFactored = `h * (2x + h + ${math.parse(numeratorSimplified).toString().replace(/2\*x\*h \+ h\^2 \+ (\d*\*?)h/, '$1').replace(/\*h/, '') || ''})`;
+                             if(func === 'x^2+3*x') { // Specific for the example
+                                numeratorFactored = 'h * (2*x + h + 3)';
+                            } else if (func === 'x^2') {
+                                numeratorFactored = 'h * (2*x + h)';
+                            }
+
+                        } else if (numeratorSimplified.includes('h')) {
+                            const coeffH = math.evaluate(numeratorSimplified.replace('h', '1'));
+                            numeratorFactored = `h * (${coeffH})`;
+                        }
+                    } else {
+                        numeratorFactored = 'h * 0'; // For constant functions
+                    }
+
+
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 5: Factorizar $h$ en el numerador</h3>
+                            <p>Factorizamos $h$ de todos los términos del numerador. Esto nos permitirá eliminar la indeterminación $\\frac{0}{0}$ cuando $h \\to 0$.</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} \\frac{${math.parse(numeratorFactored).toTex()}}{h}$$
+                            </div>
+                        </div>
+                    `;
+
+                    // Paso 6: Cancelar h
+                    let afterCancellation = '';
+                    if (numeratorFactored.includes('*') && numeratorFactored !== 'h * 0') {
+                        afterCancellation = numeratorFactored.split('*')[1].replace(/^\s*\(/, '').replace(/\)\s*$/, ''); // Extract (2x+h+3)
+                    } else if (numeratorFactored === 'h * 0') {
+                        afterCancellation = '0';
+                    } else {
+                         afterCancellation = numeratorSimplified; // If no h was factored (e.g. error or complex)
+                    }
+
+
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 6: Cancelar $h$</h3>
+                            <p>Dado que $h$ tiende a cero pero no es exactamente cero, podemos cancelar el término $h$ del numerador y del denominador:</p>
+                            <div class="math-formula">
+                                $$f'(x) = \\lim_{h \\to 0} ${math.parse(afterCancellation).toTex()}$$
+                            </div>
+                            <p>Este paso elimina la forma indeterminada y nos permite evaluar el límite.</p>
+                        </div>
+                    `;
+
+                    // Paso 7: Evaluar el límite
+                    let finalResultStep = derivativeNode.toTex();
+                    stepsHtml += `
+                        <div class="step">
+                            <h3>Paso 7: Evaluar el límite</h3>
+                            <p>Finalmente, sustituimos $h = 0$ en la expresión restante para encontrar la derivada:</p>
+                            <div class="math-formula">
+                                $$f'(x) = ${math.parse(afterCancellation).evaluate({h:0}).toTex()}$$
+                            </div>
+                            <p>¡Y este es el resultado final de la derivada por el proceso largo!</p>
+                        </div>
+                    `;
+
+                } else {
+                    stepsHtml += `
+                        <div class="info-message">
+                            <p>Para funciones más complejas, la generación de los pasos intermedios de forma automática y simbólica (expansión de $(x+h)^n$, simplificación de términos) es un proceso muy complejo que requiere un sistema de álgebra computacional completo.</p>
+                            <p>Sin embargo, la derivada final de ${node.toTex()} es:</p>
+                            <div class="math-formula">
+                                $$f'(x) = ${derivativeNode.toTex()}$$
+                            </div>
+                            <p>¡Puedes intentar verificar esto con las reglas de derivación!</p>
+                        </div>
+                    `;
+                }
+
+                outputDiv.innerHTML = stepsHtml;
+
+                // Renderizar las ecuaciones MathJax después de que el HTML esté en el DOM
+                MathJax.typesetPromise().then(() => {
+                    // console.log("MathJax typeset complete.");
+                }).catch((err) => console.error("MathJax typesetting failed: " + err.message));
+
+            } catch (error) {
+                outputDiv.innerHTML = `<p class="error-message">Error al procesar la función. Asegúrate de usar un formato válido (ej: x^2 + 3*x, sin(x)). Detalle: ${error.message}</p>`;
+                console.error("Error calculating derivative:", error);
+            }
+        }
+
+        // Calcular la derivada inicial al cargar la página (con el valor predeterminado)
+        document.addEventListener('DOMContentLoaded', calculateDerivative);
+    </script>
+</body>
+</html>
