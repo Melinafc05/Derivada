@@ -372,7 +372,6 @@
             }
         }
 
-
         // Obtiene la expansión de (x+h)^n en texto plano
         function getXPlusHPowerPlain(n) {
             if (n === 1) return '(x + h)';
@@ -384,92 +383,62 @@
 
         // Genera el término de f(x+h) expandido para un solo término ax^n en texto plano
         function getExpandedFxPlusHTermPlain(coeff, exp) {
-            if (exp === 0) return coeff.toString();
-            if (exp === 1) return `${formatCoeffPlain(coeff, true)}x ${formatCoeffPlain(coeff)}h`.trim();
-            if (exp === 2) {
-                let s_coeff = formatCoeffPlain(coeff, true);
-                let s_2coeff = formatCoeffPlain(2 * coeff);
-                let s_coeff_h2 = formatCoeffPlain(coeff);
-                return `${s_coeff}x^2 ${s_2coeff}xh ${s_coeff_h2}h^2`.trim().replace(/^\+/, '');
+            // Usamos math.js para expandir el nodo simbólico y luego convertirlo a cadena
+            let expandedNode;
+            if (exp === 0) {
+                return coeff.toString();
+            } else {
+                // Parseamos la expresión y la expandimos
+                expandedNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
             }
-            if (exp === 3) {
-                let s_coeff = formatCoeffPlain(coeff, true);
-                let s_3coeff = formatCoeffPlain(3 * coeff);
-                return `${s_coeff}x^3 ${s_3coeff}x^2h ${s_3coeff}xh^2 ${s_coeff}h^3`.trim().replace(/^\+/, '');
-            }
-            if (exp === 4) {
-                let s_coeff = formatCoeffPlain(coeff, true);
-                let s_4coeff = formatCoeffPlain(4 * coeff);
-                let s_6coeff = formatCoeffPlain(6 * coeff);
-                 return `${s_coeff}x^4 ${s_4coeff}x^3h ${s_6coeff}x^2h^2 ${s_4coeff}xh^3 ${s_coeff}h^4`.trim().replace(/^\+/, '');
-            }
-            // Fallback para potencias muy altas
-            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerPlain(exp)})`).expand();
-            return expandedNode.toString();
+            return expandedNode.toString().replace(/\*/g, ''); // Eliminar '*' para un formato más limpio
         }
 
         // Genera el numerador simplificado (f(x+h) - f(x)) para un solo término ax^n en texto plano
         function getNumeratorSimplifiedTermPlain(coeff, exp) {
             if (exp === 0) return ''; // Constante se cancela
-            if (exp === 1) return `${formatCoeffPlain(coeff, true)}h`.trim();
-            if (exp === 2) {
-                let s_2coeff = formatCoeffPlain(2 * coeff, true);
-                let s_coeff_h2 = formatCoeffPlain(coeff);
-                return `${s_2coeff}xh ${s_coeff_h2}h^2`.trim().replace(/^\+/, '');
-            }
-            if (exp === 3) {
-                let s_3coeff = formatCoeffPlain(3 * coeff, true);
-                return `${s_3coeff}x^2h ${s_3coeff}xh^2 ${formatCoeffPlain(coeff)}h^3`.trim().replace(/^\+/, '');
-            }
-            if (exp === 4) {
-                 let s_4coeff = formatCoeffPlain(4 * coeff, true);
-                let s_6coeff = formatCoeffPlain(6 * coeff);
-                 return `${s_4coeff}x^3h ${s_6coeff}x^2h^2 ${s_4coeff}xh^3 ${formatCoeffPlain(coeff)}h^4`.trim().replace(/^\+/, '');
-            }
-            // Fallback para potencias muy altas
-            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerPlain(exp)})`).expand();
-            let originalNode = math.parse(`${coeff}*x^${exp}`);
-            let diffNode = math.subtract(expandedNode, originalNode).simplify();
-            return diffNode.toString();
+            // Creamos nodos simbólicos y restamos f(x) de f(x+h)
+            let expandedFxPlusHNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
+            let fxNode = math.parse(`${coeff} * x^${exp}`);
+            let diffNode = math.subtract(expandedFxPlusHNode, fxNode).simplify();
+            return diffNode.toString().replace(/\*/g, '');
         }
 
         // Genera el término después de factorizar h para un solo término en texto plano
         function getFactoredHTermPlain(coeff, exp) {
-            if (exp === 0) return ''; // No debería ocurrir aquí
-            if (exp === 1) return `${formatCoeffPlain(coeff, true)}`;
-            if (exp === 2) {
-                let s_2coeff = formatCoeffPlain(2 * coeff, true);
-                let s_coeff_h = formatCoeffPlain(coeff);
-                return `${s_2coeff}x ${s_coeff_h}h`.trim().replace(/^\+/, '');
+            if (exp === 0) return ''; // No debería ocurrir aquí (constante se cancela antes)
+            let numeratorNode;
+            if (exp === 0) { // Should not happen but for safety
+                numeratorNode = math.parse('0');
+            } else {
+                let expandedFxPlusHNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
+                let fxNode = math.parse(`${coeff} * x^${exp}`);
+                numeratorNode = math.subtract(expandedFxPlusHNode, fxNode).simplify();
             }
-            if (exp === 3) {
-                let s_3coeff = formatCoeffPlain(3 * coeff, true);
-                return `${s_3coeff}x^2 ${s_3coeff}xh ${formatCoeffPlain(coeff)}h^2`.trim().replace(/^\+/, '');
+            
+            // Ahora, intentamos dividir por 'h'
+            const hNode = math.parse('h');
+            try {
+                // Math.js simplify puede manejar la división simbólica si la expresión lo permite
+                const factoredNode = math.simplify(math.divide(numeratorNode, hNode));
+                return factoredNode.toString().replace(/\*/g, '');
+            } catch (e) {
+                console.warn(`Could not symbolically divide by h for term ${coeff}x^${exp}:`, numeratorNode.toString(), e);
+                // Fallback si la división simbólica falla por alguna razón inesperada
+                if (exp === 1) return `${formatCoeffPlain(coeff, true)}`;
+                if (exp === 2) return `${formatCoeffPlain(2 * coeff, true)}x ${formatCoeffPlain(coeff)}h`.trim().replace(/^\+/, '');
+                if (exp === 3) return `${formatCoeffPlain(3 * coeff, true)}x^2 ${formatCoeffPlain(3 * coeff)}xh ${formatCoeffPlain(coeff)}h^2`.trim().replace(/^\+/, '');
+                if (exp === 4) return `${formatCoeffPlain(4 * coeff, true)}x^3 ${formatCoeffPlain(6 * coeff)}x^2h ${formatCoeffPlain(4 * coeff)}xh^2 ${formatCoeffPlain(coeff)}h^3`.trim().replace(/^\+/, '');
+                return `(${numeratorNode.toString().replace(/\*/g, '')}) / h`;
             }
-            if (exp === 4) {
-                let s_4coeff = formatCoeffPlain(4 * coeff, true);
-                let s_6coeff = formatCoeffPlain(6 * coeff);
-                return `${s_4coeff}x^3 ${s_6coeff}x^2h ${s_4coeff}xh^2 ${formatCoeffPlain(coeff)}h^3`.trim().replace(/^\+/, '');
-            }
-            // Fallback para potencias muy altas
-            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerPlain(exp)})`).expand();
-            let originalNode = math.parse(`${coeff}*x^${exp}`);
-            let diffNode = math.subtract(expandedNode, originalNode).simplify();
-            let hNode = math.parse('h');
-            let factoredNode = math.simplify(math.divide(diffNode, hNode));
-            return factoredNode.toString();
         }
 
         // Genera el término después de evaluar el límite h->0 para un solo término en texto plano
         function getLimitEvaluatedTermPlain(coeff, exp) {
             if (exp === 0) return ''; // Constante se deriva a 0
-            if (exp === 1) return `${formatCoeffPlain(coeff, true)}`;
-            if (exp === 2) return `${formatCoeffPlain(2 * coeff, true)}x`;
-            if (exp === 3) return `${formatCoeffPlain(3 * coeff, true)}x^2`;
-            if (exp === 4) return `${formatCoeffPlain(4 * coeff, true)}x^3`;
-            // Fallback para potencias muy altas
-            let resultNode = math.parse(`${coeff * exp}*x^${exp - 1}`);
-            return resultNode.toString();
+            // Generamos el resultado esperado de la derivada y lo convertimos a cadena
+            let resultNode = math.parse(`${coeff * exp} * x^${exp - 1}`);
+            return resultNode.toString().replace(/\*/g, '');
         }
 
         // Une una lista de términos en texto plano con signos correctos (+ o -)
@@ -477,9 +446,11 @@
             let s = t.toString().trim();
             if (s === '') return '';
             if (s.startsWith('+') || s.startsWith('-')) return s;
-            if (index === 0 && parseFloat(s) >= 0) return s;
+            if (index === 0 && parseFloat(s) >= 0 && !s.includes('x') && !s.includes('h')) return s; // For initial positive constants
+            if (index === 0 && s.match(/^[a-z]/)) return s; // For initial terms like 'x^2'
+            if (s.match(/^-/)) return s; // If it starts with a minus, keep it
             return '+' + s;
-        }).join('').replace(/^\+/, ''); // Quita el '+' inicial si existe
+        }).filter(t => t !== '').join(''); // Filter out empty strings before joining
 
         /**
          * Genera los pasos detallados para la derivada de un polinomio usando la definición formal en texto plano.
@@ -511,7 +482,11 @@
                     fxPlusHTermsPlain.push(term.coeff.toString());
                     fxPlusHExpandedTermsPlain.push(term.coeff.toString());
                 } else {
-                    fxPlusHTermsPlain.push(`${formatCoeffPlain(term.coeff, true).replace(/^\+/, '')}${getXPlusHPowerPlain(term.exp)}`);
+                    // Para la representación de f(x+h) (ej. 3(x+h)^2)
+                    let termCoeff = term.coeff === 1 ? '' : (term.coeff === -1 ? '-' : term.coeff);
+                    fxPlusHTermsPlain.push(`${termCoeff}${getXPlusHPowerPlain(term.exp)}`);
+                    
+                    // Para la expansión de f(x+h) (ej. 3(x^2 + 2xh + h^2))
                     fxPlusHExpandedTermsPlain.push(getExpandedFxPlusHTermPlain(term.coeff, term.exp));
                 }
             });
@@ -655,7 +630,7 @@
                 finalDerivativePlain = finalDerivativePlain.replace(/x\^1/g, 'x'); // x^1 -> x
                 finalDerivativePlain = finalDerivativePlain.replace(/([+-]?\d+)x/g, '$1x'); // Ensure 2x not 2 x
                 finalDerivativePlain = finalDerivativePlain.replace(/([+-]?)1x/g, '$1x'); // 1x -> x, -1x -> -x
-                finalDerivativePlain = finalDerivativePlain.replace(/\(|\)/g, ''); // Remove parentheses
+                finalDerivativePlain = finalDerivativePlain.replace(/\(|\)/g, ''); // Remove parentheses, as it's plain text
 
             } catch (error) {
                 outputDiv.innerHTML = `<p class="error-message">Error al interpretar la función. Asegúrate de usar un formato válido. Ejemplos: <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>. <br>Detalle: ${error.message}</p>`;
@@ -741,7 +716,7 @@
 
 
             if (isPolynomial) {
-                stepsContent = generatePolynomialSteps(terms, node.toString()); // Pass plain string
+                stepsContent = generatePolynomialSteps(terms, node.toString().replace(/\*/g, '')); // Pass plain string
             } else {
                 stepsContent = `
                     <div class="info-message">
@@ -773,4 +748,3 @@
     </script>
 </body>
 </html>
-
