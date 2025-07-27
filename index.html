@@ -43,7 +43,6 @@
     .final-result { background: #e6ffe6; border: 2px solid #28a745; padding: 20px; margin: auto; font-size: 1.5em; font-weight: bold; }
     .toggle-steps-button { display:block; margin: 20px auto; background: #6c757d; color: white; }
     #steps-container .step { margin-bottom: 25px; padding: 20px; background: #f9fbfb; border-radius: 10px; }
-    .math-formula { background: #e9f5ff; border-left: 5px solid #007bff; padding: 15px; font-family: monospace; overflow-x: auto; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
 </head>
@@ -137,32 +136,31 @@
       const derivPlain = derivative.toString().replace(/\*/g,'').replace(/\^1/g,'').replace(/([+-]?)1x/g,'$1x');
       output.innerHTML = `<h2>Derivada Final</h2><div class="final-result">f'(x) = ${derivPlain}</div>`;
 
-      const pol = math.simplify(node);
-      const degree = pol ? (pol.degree ? pol.degree('x') : NaN) : NaN;
-      if (!isNaN(degree)) {
-        const steps = generateStepsNatural(pol, derivPlain);
-        output.innerHTML += `<button class="toggle-steps-button" onclick="toggleSteps()">Mostrar Pasos</button><div id="steps-container" style="display:none;">${steps}</div>`;
-      } else {
-        output.innerHTML += `<p class="info-message">No se muestran pasos detallados para funciones no polinómicas.</p>`;
-      }
-    }
+      const steps = `
+        <div class="step">
+          <h3>Paso 1: Definición general</h3>
+          <p>Recordamos que la derivada se define como el límite del cociente de diferencias:</p>
+          <p>"La derivada de una función f(x) es el valor que se obtiene al acercar h a cero en la expresión: [f(x + h) − f(x)] / h".</p>
+        </div>
+        <div class="step">
+          <h3>Paso 2: Sustitución de la función</h3>
+          <p>Tomamos la función que escribiste y sustituimos (x + h) en cada aparición de x.</p>
+          <p>Luego restamos el valor original de f(x).</p>
+        </div>
+        <div class="step">
+          <h3>Paso 3: División entre h</h3>
+          <p>El resultado anterior lo dividimos por h. Esto representa la razón de cambio promedio.</p>
+        </div>
+        <div class="step">
+          <h3>Paso 4: Aplicación del límite</h3>
+          <p>Finalmente, tomamos el valor de esa expresión cuando h se aproxima a 0. Esto nos da la derivada exacta.</p>
+        </div>
+        <div class="step">
+          <h3>Paso 5: Resultado final</h3>
+          <p>Obtenemos la derivada simplificada: f'(x) = ${derivPlain}</p>
+        </div>`;
 
-    function generateStepsNatural(polyNode, derivPlain) {
-      const coeffs = polyNode.coefficients ? polyNode.coefficients('x') : null;
-      if (!coeffs) return '';
-      let html = '';
-      html += `<div class="step"><h3>Paso 1</h3><p>Usamos la definición de derivada: La derivada de una función en un punto x es el límite cuando h tiende a 0 del cociente de [f(x + h) menos f(x)] dividido entre h.</p></div>`;
-
-      coeffs.forEach(({ value: coef }, i, arr) => {
-        const exp = arr.length - i - 1;
-        if (coef === 0) return;
-        html += `<div class="step"><h3>Paso ${i + 2}</h3>`;
-        html += `<p>Derivamos el término ${coef}x elevado a ${exp}. Para esto, sustituimos x por (x + h) y luego restamos el valor original con x. Eso se divide por h y al aplicar el límite, obtenemos la derivada.</p>`;
-        html += `<p>El resultado es: ${coef * exp}x elevado a ${exp - 1}.</p></div>`;
-      });
-
-      html += `<div class="step"><h3>Resultado Final</h3><p>Sumando todos los resultados obtenidos, la derivada es:</p><div class="math-formula">f′(x) = ${derivPlain}</div></div>`;
-      return html;
+      output.innerHTML += `<button class="toggle-steps-button" onclick="toggleSteps()">Mostrar Pasos</button><div id="steps-container" style="display:none;">${steps}</div>`;
     }
 
     function toggleSteps() {
@@ -172,4 +170,3 @@
   </script>
 </body>
 </html>
-
