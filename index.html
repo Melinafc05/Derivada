@@ -230,7 +230,7 @@
         </p>
         <div class="input-section">
             <label for="functionInput">Ingresa tu función f(x):</label>
-            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3x" value="x^2 + 3x">
+            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3x" value="x^2">
             <div class="keyboard">
                 <button onclick="insertChar('x')">x</button>
                 <button onclick="insertChar('^')">^</button>
@@ -256,11 +256,15 @@
                 <button onclick="insertChar('cos(', 'func')">cos(</button>
                 <button onclick="insertChar('tan(', 'func')">tan(</button>
                 <button onclick="insertChar('log(', 'func')">log(</button>
+                <button onclick="insertChar('ln(', 'func')">ln(</button>
                 <button onclick="insertChar('exp(', 'func')">exp(</button>
                 <button onclick="insertChar('sqrt(', 'func')">sqrt(</button>
                 <button onclick="insertFraction()" class="special">frac</button>
                 <button onclick="insertChar('e', 'special')">e</button>
                 <button onclick="insertChar('pi', 'special')">pi</button>
+                <button onclick="insertChar('Infinity', 'special')">inf</button>
+                <button onclick="insertChar('>=', 'op')">&ge;</button>
+                <button onclick="insertChar('<=', 'op')">&le;</button>
             </div>
             <button onclick="calculateDerivative()">Calcular Derivada</button>
         </div>
@@ -289,10 +293,15 @@
             const value = functionInput.value;
             functionInput.value = value.substring(0, start) + char + value.substring(end);
             functionInput.focus();
-            functionInput.selectionEnd = start + char.length; // Posiciona el cursor al final de lo insertado
+            // Posiciona el cursor al final de lo insertado, a menos que sea una función como 'sin('
+            if (char.includes('(') && !char.includes(')')) {
+                functionInput.selectionEnd = start + char.length; 
+            } else {
+                functionInput.selectionEnd = start + char.length;
+            }
         }
 
-        // Función para insertar fracción
+        // Función para insertar fracción (formato A/B)
         function insertFraction() {
             const start = functionInput.selectionStart;
             const end = functionInput.selectionEnd;
@@ -318,7 +327,6 @@
             functionInput.focus();
         }
 
-
         /**
          * Normaliza la cadena de entrada de la función para que math.js la entienda.
          * @param {string} inputString La cadena de la función ingresada por el usuario.
@@ -326,6 +334,9 @@
          */
         function normalizeFunctionInput(inputString) {
             let normalized = inputString.toLowerCase().replace(/\s/g, ''); // Eliminar espacios y convertir a minúsculas
+
+            // Reemplazar delta x por h para consistencia interna
+            normalized = normalized.replace(/deltax|delta_x|d_x|dx/g, 'h');
 
             // Insertar '*' entre un número y una variable o paréntesis de apertura
             normalized = normalized.replace(/(\d)([a-z(])/g, '$1*$2');
@@ -348,62 +359,142 @@
         // --- Funciones auxiliares para generar LaTeX de los pasos de polinomios ---
 
         // Formatea el coeficiente para LaTeX (ej. 1 -> '', -1 -> '-', 2 -> '2')
-        function formatCoeff(coeff) {
-            if (coeff === 1) return '';
+        function formatCoeff(coeff, isLeading = false) {
+            if (coeff === 0) return '';
+            if (coeff === 1) return isLeading ? '' : '+'; // Only add + if not the very first term
             if (coeff === -1) return '-';
+            if (coeff > 0) return (isLeading ? '' : '+') + coeff.toString();
             return coeff.toString();
         }
+        
+        // Formatea un término completo (coeficiente y variable con exponente) para LaTeX
+        function formatTerm(coeff, exp, isLeading = false) {
+            if (coeff === 0) return '';
+            const sign = (coeff > 0 && !isLeading) ? '+' : '';
+            const absCoeff = Math.abs(coeff);
+
+            if (exp === 0) { // Constante
+                return `${sign}${absCoeff}`;
+            } else if (exp === 1) { // Término lineal (ej. x, 2x)
+                return `${sign}${absCoeff === 1 ? '' : absCoeff}x`;
+            } else { // Término con exponente (ej. x^2, 3x^3)
+                return `${sign}${absCoeff === 1 ? '' : absCoeff}x^{${exp}}`;
+            }
+        }
+
 
         // Obtiene la expansión de (x+h)^n en LaTeX
+        // Esto se ha codificado manualmente para garantizar la exactitud del paso a paso.
         function getXPlusHPowerTex(n) {
-            if (n === 1) return 'x + h';
-            if (n === 2) return 'x^2 + 2xh + h^2';
-            if (n === 3) return 'x^3 + 3x^2h + 3xh^2 + h^3';
-            if (n === 4) return 'x^4 + 4x^3h + 6x^2h^2 + 4xh^3 + h^4';
+            if (n === 1) return '(x + h)';
+            if (n === 2) return '(x^2 + 2xh + h^2)';
+            if (n === 3) return '(x^3 + 3x^2h + 3xh^2 + h^3)';
+            if (n === 4) return '(x^4 + 4x^3h + 6x^2h^2 + 4xh^3 + h^4)';
             // Para potencias más altas, solo mostramos la forma binomial sin expansión completa
             return `(x + h)^{${n}}`;
         }
 
-        // Obtiene el término del numerador simplificado (f(x+h) - f(x)) para un solo término ax^n
-        function getSimplifiedNumeratorTermTex(coeff, exp) {
-            if (exp === 0) return ''; // Término constante se cancela
-            if (exp === 1) return `${formatCoeff(coeff)}h`;
-            if (exp === 2) return `${formatCoeff(2 * coeff)}xh + ${formatCoeff(coeff)}h^2`;
-            if (exp === 3) return `${formatCoeff(3 * coeff)}x^2h + ${formatCoeff(3 * coeff)}xh^2 + ${formatCoeff(coeff)}h^3`;
-            if (exp === 4) return `${formatCoeff(4 * coeff)}x^3h + ${formatCoeff(6 * coeff)}x^2h^2 + ${formatCoeff(4 * coeff)}xh^3 + ${formatCoeff(coeff)}h^4`;
-            // Para potencias más altas, usamos la forma general del binomio
-            return `${formatCoeff(coeff * exp)}x^{${exp - 1}}h + \\dots + ${formatCoeff(coeff)}h^{${exp}}`;
+        // Genera el término de f(x+h) expandido para un solo término ax^n
+        function getExpandedFxPlusHTerm(coeff, exp) {
+            if (exp === 0) return coeff.toString();
+            if (exp === 1) return `${formatCoeff(coeff, true)}x ${formatCoeff(coeff)}h`;
+            if (exp === 2) {
+                let s_coeff = formatCoeff(coeff, true);
+                let s_2coeff = formatCoeff(2 * coeff);
+                let s_coeff_h2 = formatCoeff(coeff);
+                return `${s_coeff}x^2 ${s_2coeff}xh ${s_coeff_h2}h^2`.replace(/^\+/, '');
+            }
+            if (exp === 3) {
+                let s_coeff = formatCoeff(coeff, true);
+                let s_3coeff = formatCoeff(3 * coeff);
+                return `${s_coeff}x^3 ${s_3coeff}x^2h ${s_3coeff}xh^2 ${s_coeff}h^3`.replace(/^\+/, '');
+            }
+            if (exp === 4) {
+                let s_coeff = formatCoeff(coeff, true);
+                let s_4coeff = formatCoeff(4 * coeff);
+                let s_6coeff = formatCoeff(6 * coeff);
+                 return `${s_coeff}x^4 ${s_4coeff}x^3h ${s_6coeff}x^2h^2 ${s_4coeff}xh^3 ${s_coeff}h^4`.replace(/^\+/, '');
+            }
+            // Fallback para potencias muy altas
+            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerTex(exp)})`).expand();
+            return expandedNode.toTex().replace(/\\cdot/g, '');
         }
 
-        // Obtiene el término después de factorizar h para un solo término
+        // Genera el numerador simplificado (f(x+h) - f(x)) para un solo término ax^n
+        function getNumeratorSimplifiedTermTex(coeff, exp) {
+            if (exp === 0) return ''; // Constante se cancela
+            if (exp === 1) return `${formatCoeff(coeff, true)}h`;
+            if (exp === 2) {
+                let s_2coeff = formatCoeff(2 * coeff, true);
+                let s_coeff_h2 = formatCoeff(coeff);
+                return `${s_2coeff}xh ${s_coeff_h2}h^2`.replace(/^\+/, '');
+            }
+            if (exp === 3) {
+                let s_3coeff = formatCoeff(3 * coeff, true);
+                return `${s_3coeff}x^2h ${s_3coeff}xh^2 ${formatCoeff(coeff)}h^3`.replace(/^\+/, '');
+            }
+            if (exp === 4) {
+                 let s_4coeff = formatCoeff(4 * coeff, true);
+                let s_6coeff = formatCoeff(6 * coeff);
+                 return `${s_4coeff}x^3h ${s_6coeff}x^2h^2 ${s_4coeff}xh^3 ${formatCoeff(coeff)}h^4`.replace(/^\+/, '');
+            }
+            // Fallback para potencias muy altas
+            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerTex(exp)})`).expand();
+            let originalNode = math.parse(`${coeff}*x^${exp}`);
+            let diffNode = math.subtract(expandedNode, originalNode).simplify();
+            return diffNode.toTex().replace(/\\cdot/g, '');
+        }
+
+        // Genera el término después de factorizar h para un solo término
         function getFactoredHTermTex(coeff, exp) {
-            if (exp === 0) return ''; // No debería ocurrir aquí si el numerador simplificado es correcto
-            if (exp === 1) return `${formatCoeff(coeff)}`;
-            if (exp === 2) return `${formatCoeff(2 * coeff)}x + ${formatCoeff(coeff)}h`;
-            if (exp === 3) return `${formatCoeff(3 * coeff)}x^2 + ${formatCoeff(3 * coeff)}xh + ${formatCoeff(coeff)}h^2`;
-            if (exp === 4) return `${formatCoeff(4 * coeff)}x^3 + ${formatCoeff(6 * coeff)}x^2h + ${formatCoeff(4 * coeff)}xh^2 + ${formatCoeff(coeff)}h^3`;
-            // Para potencias más altas
-            return `${formatCoeff(coeff * exp)}x^{${exp - 1}} + \\dots + ${formatCoeff(coeff)}h^{${exp - 1}}`;
+            if (exp === 0) return ''; // No debería ocurrir aquí
+            if (exp === 1) return `${formatCoeff(coeff, true)}`;
+            if (exp === 2) {
+                let s_2coeff = formatCoeff(2 * coeff, true);
+                let s_coeff_h = formatCoeff(coeff);
+                return `${s_2coeff}x ${s_coeff_h}h`.replace(/^\+/, '');
+            }
+            if (exp === 3) {
+                let s_3coeff = formatCoeff(3 * coeff, true);
+                return `${s_3coeff}x^2 ${s_3coeff}xh ${formatCoeff(coeff)}h^2`.replace(/^\+/, '');
+            }
+            if (exp === 4) {
+                let s_4coeff = formatCoeff(4 * coeff, true);
+                let s_6coeff = formatCoeff(6 * coeff);
+                return `${s_4coeff}x^3 ${s_6coeff}x^2h ${s_4coeff}xh^2 ${formatCoeff(coeff)}h^3`.replace(/^\+/, '');
+            }
+            // Fallback para potencias muy altas
+            let expandedNode = math.parse(`${coeff}*(${getXPlusHPowerTex(exp)})`).expand();
+            let originalNode = math.parse(`${coeff}*x^${exp}`);
+            let diffNode = math.subtract(expandedNode, originalNode).simplify();
+            let hNode = math.parse('h');
+            let factoredNode = math.simplify(math.divide(diffNode, hNode));
+            return factoredNode.toTex().replace(/\\cdot/g, '');
         }
 
-        // Obtiene el término después de evaluar el límite h->0 para un solo término
+        // Genera el término después de evaluar el límite h->0 para un solo término
         function getLimitEvaluatedTermTex(coeff, exp) {
             if (exp === 0) return ''; // Constante se deriva a 0
-            if (exp === 1) return `${formatCoeff(coeff)}`;
-            if (exp === 2) return `${formatCoeff(2 * coeff)}x`;
-            if (exp === 3) return `${formatCoeff(3 * coeff)}x^2`;
-            if (exp === 4) return `${formatCoeff(4 * coeff)}x^3`;
-            // Para potencias más altas
-            return `${formatCoeff(coeff * exp)}x^{${exp - 1}}`;
+            if (exp === 1) return `${formatCoeff(coeff, true)}`;
+            if (exp === 2) return `${formatCoeff(2 * coeff, true)}x`;
+            if (exp === 3) return `${formatCoeff(3 * coeff, true)}x^2`;
+            if (exp === 4) return `${formatCoeff(4 * coeff, true)}x^3`;
+            // Fallback para potencias muy altas
+            let resultNode = math.parse(`${coeff * exp}*x^${exp - 1}`);
+            return resultNode.toTex().replace(/\\cdot/g, '');
         }
 
         // Une una lista de términos LaTeX con signos correctos (+ o -)
-        const joinTexTerms = (arr) => arr.map(t => {
-            let s = t.toString();
-            if (s.startsWith('-')) return s;
-            if (s === '') return ''; // Handle empty strings from cancelled terms
+        const joinTexTerms = (arr) => arr.map((t, index) => {
+            let s = t.toString().trim();
+            if (s === '') return '';
+            // Si el término ya empieza con + o -, lo mantenemos
+            if (s.startsWith('+') || s.startsWith('-')) return s;
+            // Si es el primer término y es positivo, no añadimos +
+            if (index === 0 && parseFloat(s) >= 0) return s;
+            // Si es un término positivo y no es el primero, añadimos +
             return '+' + s;
-        }).join('').replace(/^\+/, ''); // Remove leading '+'
+        }).join('').replace(/^\+/, ''); // Quita el '+' inicial si existe
 
         /**
          * Genera los pasos detallados para la derivada de un polinomio usando la definición formal.
@@ -436,11 +527,10 @@
                     fxPlusHExpandedTermsTex.push(term.coeff.toString());
                 } else {
                     // Para la representación de f(x+h) (ej. 3(x+h)^2)
-                    fxPlusHTermsTex.push(`${formatCoeff(term.coeff)}(x + h)^{${term.exp === 1 ? '' : term.exp}}`);
+                    fxPlusHTermsTex.push(`${formatCoeff(term.coeff, true).replace(/\+/g, '')}(x + h)^{${term.exp === 1 ? '' : term.exp}}`);
                     
                     // Para la expansión de f(x+h) (ej. 3(x^2 + 2xh + h^2))
-                    let expandedTerm = math.parse(`${formatCoeff(term.coeff)}*(${getXPlusHPowerTex(term.exp)})`).expand();
-                    fxPlusHExpandedTermsTex.push(expandedTerm.toTex());
+                    fxPlusHExpandedTermsTex.push(getExpandedFxPlusHTerm(term.coeff, term.exp));
                 }
             });
 
@@ -475,12 +565,20 @@
             `;
 
             // Paso 4: Simplificar el numerador
-            let simplifiedNumeratorTermsTex = [];
+            let numeratorSimplifiedTex = '';
+            let cancellationExplanation = `<p>Todos los términos de $f(x)$ se cancelan con sus contrapartes en $f(x+h)$ que no contienen $h$.</p>`;
+            let remainingTermsTex = [];
             terms.forEach(term => {
-                simplifiedNumeratorTermsTex.push(getSimplifiedNumeratorTermTex(term.coeff, term.exp));
+                const simplifiedTerm = getNumeratorSimplifiedTermTex(term.coeff, term.exp);
+                if (simplifiedTerm !== '') {
+                    remainingTermsTex.push(simplifiedTerm);
+                }
             });
-            let numeratorSimplifiedTex = joinTexTerms(simplifiedNumeratorTermsTex.filter(t => t !== '')); 
-            if (numeratorSimplifiedTex === '') numeratorSimplifiedTex = '0'; // For constant functions
+            numeratorSimplifiedTex = joinTexTerms(remainingTermsTex);
+            if (numeratorSimplifiedTex === '') { // Should only happen for constant functions
+                 numeratorSimplifiedTex = '0';
+                 cancellationExplanation = `<p>Como la función es una constante, $f(x+h) - f(x)$ es $0$.</p>`;
+            }
 
             steps += `
                 <div class="step">
@@ -489,16 +587,19 @@
                     <div class="math-formula">
                         $$f'(x) = \\lim_{h \\to 0} \\frac{${numeratorSimplifiedTex}}{h}$$
                     </div>
-                    <p>Observa cómo todos los términos originales de $f(x)$ se restan, dejando solo los términos que contienen $h$.</p>
+                    ${cancellationExplanation}
                 </div>
             `;
 
             // Paso 5: Factorizar h en el numerador
             let afterFactoringHTexParts = [];
             terms.forEach(term => {
-                afterFactoringHTexParts.push(getFactoredHTermTex(term.coeff, term.exp));
+                const factoredTerm = getFactoredHTermTex(term.coeff, term.exp);
+                if (factoredTerm !== '') {
+                    afterFactoringHTexParts.push(factoredTerm);
+                }
             });
-            let afterFactoringHTex = joinTexTerms(afterFactoringHTexParts.filter(t => t !== ''));
+            let afterFactoringHTex = joinTexTerms(afterFactoringHTexParts);
             if (afterFactoringHTex === '') afterFactoringHTex = '0'; // For constant functions
 
             steps += `
@@ -527,10 +628,14 @@
             // Paso 7: Evaluar el límite
             let finalResultAfterLimitTexParts = [];
             terms.forEach(term => {
-                finalResultAfterLimitTexParts.push(getLimitEvaluatedTermTex(term.coeff, term.exp));
+                const evaluatedTerm = getLimitEvaluatedTermTex(term.coeff, term.exp);
+                if (evaluatedTerm !== '') {
+                    finalResultAfterLimitTexParts.push(evaluatedTerm);
+                }
             });
-            let finalResultAfterLimitTex = joinTexTerms(finalResultAfterLimitTexParts.filter(t => t !== ''));
+            let finalResultAfterLimitTex = joinTexTerms(finalResultAfterLimitTexParts);
             if (finalResultAfterLimitTex === '') finalResultAfterLimitTex = '0'; // For constant functions
+
 
             steps += `
                 <div class="step">
@@ -568,6 +673,7 @@
                 finalDerivativeTex = finalDerivativeTex.replace(/x\^1/g, 'x'); // x^1 -> x
                 finalDerivativeTex = finalDerivativeTex.replace(/([+-]?\d+)x/g, '$1x'); // Ensure 2x not 2 x
                 finalDerivativeTex = finalDerivativeTex.replace(/([+-]?)1x/g, '$1x'); // 1x -> x, -1x -> -x
+                finalDerivativeTex = finalDerivativeTex.replace(/\\left\(|\\right\)/g, ''); // Remove \\left( \\right)
 
             } catch (error) {
                 outputDiv.innerHTML = `<p class="error-message">Error al interpretar la función. Asegúrate de usar un formato válido. Ejemplos: <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>. <br>Detalle: ${error.message}</p>`;
@@ -600,7 +706,7 @@
                     m = m.replace(/\s/g, ''); // Eliminar espacios dentro del término
                     if (m === '') return; // Skip empty matches
 
-                    let coeff = 1;
+                    let coeff = 0;
                     let exp = 0;
                     let isXTerm = false;
 
@@ -608,26 +714,48 @@
                     if (xMatch) {
                         isXTerm = true;
                         coeff = xMatch[1] === '-' ? -1 : parseFloat(xMatch[1] || '1');
+                        if (xMatch[1] === '+') coeff = 1; // Handle explicit +1x
+                        if (xMatch[1] === '') coeff = 1; // Handle x
+                        
                         exp = parseFloat(xMatch[2] || '1');
                     } else { // Constant term
                         coeff = parseFloat(m);
+                        exp = 0;
                     }
 
-                    if (isNaN(coeff)) { // If coefficient parsing fails, it's not a simple polynomial
-                        isPolynomial = false;
+                    if (isNaN(coeff) || (isXTerm && isNaN(exp))) { 
+                        isPolynomial = false; // Not a simple polynomial term
                     } else {
                         terms.push({ coeff, exp });
                     }
                 });
             } else {
-                isPolynomial = false; // No matches, not a simple polynomial
+                isPolynomial = false; // No matches at all, not a polynomial
             }
 
-            // Si la función original no contiene 'x' y no es una constante simple (ej. 'sin(1)'), no es un polinomio manejable
-            if (!normalizedInput.includes('x') && terms.length === 1 && terms[0].exp === 0) {
-                 isPolynomial = true; // Es una constante, se maneja como polinomio de grado 0
-            } else if (!normalizedInput.includes('x') && (terms.length === 0 || !isPolynomial)) {
-                isPolynomial = false; // Como 'sin(x)' o 'log(x)'
+            // Additional check: if it contains functions like sin, cos, sqrt, etc., it's not a polynomial
+            const complexFunctionRegex = /(sin|cos|tan|log|ln|exp|sqrt)\(/i;
+            if (complexFunctionRegex.test(normalizedInput)) {
+                isPolynomial = false;
+            }
+
+            // If it's a constant, ensure it's handled as a polynomial of degree 0
+            if (!normalizedInput.includes('x') && terms.length === 1 && terms[0].exp === 0 && !isNaN(terms[0].coeff)) {
+                isPolynomial = true; 
+            } else if (!normalizedInput.includes('x') && normalizedInput !== '0') { // Catch cases like 'pi' or 'e'
+                isPolynomial = false;
+            }
+            
+            // If the highest power is too high, or something else is complex, do not generate steps
+            const maxDegreeForSteps = 4; // Max degree for which we have manual step generation
+            let highestDegree = 0;
+            if (isPolynomial) {
+                terms.forEach(term => {
+                    if (term.exp > highestDegree) highestDegree = term.exp;
+                });
+                if (highestDegree > maxDegreeForSteps) {
+                    isPolynomial = false; // Degenerate to showing only final result
+                }
             }
 
 
@@ -636,7 +764,7 @@
             } else {
                 stepsContent = `
                     <div class="info-message">
-                        <p>La generación automática de todos los pasos intermedios por definición de límite es muy compleja para funciones que no son polinomios, o que tienen combinaciones inusuales (ej. $\\sin(x)$, $e^x$, $\\sqrt{x}$ etc.).</p>
+                        <p>La generación automática de todos los pasos intermedios por definición de límite es muy compleja para funciones que no son polinomios, o que tienen combinaciones inusuales (ej. $\\sin(x)$, $e^x$, $\\sqrt{x}$ etc.), o polinomios de grado muy alto.</p>
                         <p>Para este tipo de funciones, se muestra la derivada final utilizando las reglas de derivación.</p>
                     </div>
                 `;
