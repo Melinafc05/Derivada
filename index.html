@@ -1,750 +1,124 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Derivadas por Límite (Pro)</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-            padding: 30px 40px;
-            max-width: 900px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.2em;
-            font-weight: 600;
-        }
-        .input-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .input-section label {
-            font-size: 1.1em;
-            color: #555;
-            font-weight: 500;
-        }
-        .input-section input[type="text"] {
-            padding: 12px 18px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1.1em;
-            width: calc(100% - 36px);
-            transition: all 0.3s ease;
-        }
-        .input-section input[type="text"]:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-            outline: none;
-        }
-        .input-section button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            align-self: flex-start;
-        }
-        .input-section button:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-        }
-        .input-section button:active {
-            transform: translateY(0);
-        }
+  <meta charset="UTF-8">
+  <title>Calculadora de Derivadas por Definición</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+    }
 
-        .keyboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-            gap: 8px;
-            margin-top: 15px;
-            padding: 15px;
-            background-color: #f0f3f6;
-            border-radius: 10px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .keyboard button {
-            background-color: #e2e6ea;
-            color: #333;
-            padding: 10px;
-            border: 1px solid #cdd2d7;
-            border-radius: 6px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .keyboard button:hover {
-            background-color: #d1d6db;
-            transform: translateY(-1px);
-        }
-        .keyboard button:active {
-            background-color: #bfc4c9;
-            transform: translateY(0);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .keyboard button.op {
-            background-color: #add8e6; /* Light blue for operators */
-        }
-        .keyboard button.func {
-            background-color: #c3e6cb; /* Light green for functions */
-        }
-        .keyboard button.special {
-            background-color: #ffecb3; /* Light yellow for special symbols */
-        }
+    h1 {
+      color: #333;
+    }
 
-        .output-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        .output-section h2 {
-            color: #2c3e50;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
 
-        .final-result {
-            background-color: #e6ffe6; /* Light green for final result */
-            border: 2px solid #28a745;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-        }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
 
-        .toggle-steps-button {
-            background-color: #6c757d; /* Gray button */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            display: block; /* Make it block to center easily */
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .toggle-steps-button:hover {
-            background-color: #5a6268;
-            transform: translateY(-2px);
-        }
+    button:hover {
+      background-color: #45a049;
+    }
 
-        #steps-container {
-            display: none; /* Oculto por defecto */
-        }
+    #pasos {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
 
-        .step {
-            background-color: #f9fbfb;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        .step:hover {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .step h3 {
-            color: #007bff;
-            margin-top: 0;
-            font-size: 1.4em;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .step p {
-            font-size: 1.05em;
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
-        .step .math-formula {
-            background-color: #e9f5ff;
-            border-left: 5px solid #007bff;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.2em;
-            overflow-x: auto;
-            margin-top: 10px;
-            margin-bottom: 15px;
-            font-family: 'Consolas', 'Monaco', monospace; /* Monospaced font for clarity */
-        }
-        .error-message {
-            color: #dc3545;
-            background-color: #ffebe9;
-            border: 1px solid #dc3545;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            font-weight: 500;
-            text-align: center;
-        }
-        .info-message {
-            background-color: #e0f7fa;
-            border: 1px solid #00acc1;
-            color: #00838f;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            font-weight: 500;
-            text-align: center;
-        }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
+    #pasos div {
+      margin-bottom: 10px;
+      font-family: monospace;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Calculadora de Derivadas por Límite</h1>
-        <p class="info-message">
-            Esta herramienta te ayuda a entender el "proceso largo" de las derivadas. <br>
-            **Nota:** Genera los pasos detallados para funciones **polinómicas** (ej: `x^2`, `3x+5`, `x^3-2x`, `x^4`, `(x+1)^2`). Para otras funciones (trigonométricas, exponenciales, raíces), mostrará la derivada final.
-        </p>
-        <div class="input-section">
-            <label for="functionInput">Ingresa tu función f(x):</label>
-            <input type="text" id="functionInput" placeholder="Ej: x^2 + 3x" value="x^2">
-            <div class="keyboard">
-                <button onclick="insertChar('x')">x</button>
-                <button onclick="insertChar('^')">^</button>
-                <button onclick="insertChar('+')" class="op">+</button>
-                <button onclick="insertChar('-')" class="op">-</button>
-                <button onclick="insertChar('*')" class="op">*</button>
-                <button onclick="insertChar('/')" class="op">/</button>
-                <button onclick="insertChar('(')" class="op">(</button>
-                <button onclick="insertChar(')')" class="op">)</button>
-                <button onclick="insertChar('7')">7</button>
-                <button onclick="insertChar('8')">8</button>
-                <button onclick="insertChar('9')">9</button>
-                <button onclick="insertChar('4')">4</button>
-                <button onclick="insertChar('5')">5</button>
-                <button onclick="insertChar('6')">6</button>
-                <button onclick="insertChar('1')">1</button>
-                <button onclick="insertChar('2')">2</button>
-                <button onclick="insertChar('3')">3</button>
-                <button onclick="insertChar('0')">0</button>
-                <button onclick="insertChar('.')">.</button>
-                <button onclick="deleteChar()">DEL</button>
-                <button onclick="insertChar('sin(', 'func')">sin(</button>
-                <button onclick="insertChar('cos(', 'func')">cos(</button>
-                <button onclick="insertChar('tan(', 'func')">tan(</button>
-                <button onclick="insertChar('log(', 'func')">log(</button>
-                <button onclick="insertChar('ln(', 'func')">ln(</button>
-                <button onclick="insertChar('exp(', 'func')">exp(</button>
-                <button onclick="insertChar('sqrt(', 'func')">sqrt(</button>
-                <button onclick="insertFraction()" class="special">frac</button>
-                <button onclick="insertChar('e', 'special')">e</button>
-                <button onclick="insertChar('pi', 'special')">pi</button>
-                <button onclick="insertChar('Infinity', 'special')">inf</button>
-                <button onclick="insertChar('>=', 'op')">&ge;</button>
-                <button onclick="insertChar('<=', 'op')">&le;</button>
-            </div>
-            <button onclick="calculateDerivative()">Calcular Derivada</button>
-        </div>
+  <h1>📘 Derivada por Definición (Paso a Paso)</h1>
 
-        <div id="output" class="output-section">
-            </div>
-    </div>
+  <input type="text" id="expresion" placeholder="Ejemplo: 2x^3 + 3x^2 + x">
+  <br>
+  <button onclick="derivar()">Derivar</button>
 
-    <script>
-        const functionInput = document.getElementById('functionInput');
+  <div id="pasos"></div>
 
-        // Función para insertar caracteres en el input
-        function insertChar(char) {
-            const start = functionInput.selectionStart;
-            const end = functionInput.selectionEnd;
-            const value = functionInput.value;
-            functionInput.value = value.substring(0, start) + char + value.substring(end);
-            functionInput.focus();
-            // Posiciona el cursor al final de lo insertado, a menos que sea una función como 'sin('
-            if (char.includes('(') && !char.includes(')')) {
-                functionInput.selectionEnd = start + char.length; 
-            } else {
-                functionInput.selectionEnd = start + char.length;
-            }
+  <script>
+    function parseExpresion(expresion) {
+      expresion = expresion.replace(/\s+/g, ''); // quitar espacios
+      const terminos = expresion.match(/[+-]?\d*x(?:\^\d+)?|[+-]?\d+/g);
+      if (!terminos) throw new Error("Formato inválido");
+
+      return terminos.map(t => {
+        let coef = 1, exp = 0;
+
+        if (t.includes('x')) {
+          const partes = t.split('x');
+          coef = partes[0] === '' || partes[0] === '+' ? 1 : (partes[0] === '-' ? -1 : parseFloat(partes[0]));
+          exp = partes[1] ? parseInt(partes[1].replace('^', '')) : 1;
+        } else {
+          coef = parseFloat(t);
+          exp = 0;
         }
 
-        // Función para insertar fracción (formato A/B)
-        function insertFraction() {
-            const start = functionInput.selectionStart;
-            const end = functionInput.selectionEnd;
-            const value = functionInput.value;
-            const fractionString = '(/)'; // Placeholder for numerator/denominator
-            functionInput.value = value.substring(0, start) + fractionString + value.substring(end);
-            functionInput.focus();
-            functionInput.selectionEnd = start + 1; // Posiciona el cursor dentro del numerador
-        }
+        return { coef, exp };
+      });
+    }
 
-        // Función para borrar el último caracter
-        function deleteChar() {
-            const start = functionInput.selectionStart;
-            const end = functionInput.selectionEnd;
-            const value = functionInput.value;
-            if (start === end && start > 0) {
-                functionInput.value = value.substring(0, start - 1) + value.substring(end);
-                functionInput.selectionEnd = start - 1;
-            } else if (start !== end) {
-                functionInput.value = value.substring(0, start) + value.substring(end);
-                functionInput.selectionEnd = start;
-            }
-            functionInput.focus();
-        }
+    function derivar() {
+      const expresion = document.getElementById("expresion").value;
+      const pasosContainer = document.getElementById("pasos");
+      pasosContainer.innerHTML = "";
 
-        /**
-         * Normaliza la cadena de entrada de la función para que math.js la entienda.
-         * @param {string} inputString La cadena de la función ingresada por el usuario.
-         * @returns {string} La cadena normalizada.
-         */
-        function normalizeFunctionInput(inputString) {
-            let normalized = inputString.toLowerCase().replace(/\s/g, ''); // Eliminar espacios y convertir a minúsculas
+      try {
+        const coeficientes = parseExpresion(expresion);
+        const pasos = [];
 
-            // Reemplazar delta x por h para consistencia interna
-            normalized = normalized.replace(/deltax|delta_x|d_x|dx/g, 'h');
+        coeficientes.forEach(({ coef, exp }) => {
+          if (coef === 0) return;
 
-            // Insertar '*' entre un número y una variable o paréntesis de apertura
-            normalized = normalized.replace(/(\d)([a-z(])/g, '$1*$2');
-            // Insertar '*' entre un paréntesis que cierra y una variable o número
-            normalized = normalized.replace(/\)([\da-z(])/g, ')*$1');
-            // Insertar '*' entre una variable y un paréntesis que abre
-            normalized = normalized.replace(/([a-z])\(/g, '$1*(');
-            // Insertar '*' entre 'x' y 'x^'
-            normalized = normalized.replace(/(x)(x\^)/g, '$1*$2');
-            
-            // Reemplazar ** por ^ para compatibilidad si alguien lo usa
-            normalized = normalized.replace(/\*\*/g, '^');
-            // Reemplazar (/) por / para fracciones
-            normalized = normalized.replace(/\(\/\)/g, '/');
+          pasos.push(`f(x) = ${coef}x^${exp}`);
+          pasos.push(`f(x+h) = ${coef}(x+h)^${exp}`);
+          pasos.push(`f(x+h) - f(x) = ${coef}(x+h)^${exp} - ${coef}x^${exp}`);
+          pasos.push(`(f(x+h) - f(x)) / h = [${coef}(x+h)^${exp} - ${coef}x^${exp}] / h`);
+          pasos.push(`lim h→0 [(f(x+h) - f(x)) / h] = ${coef * exp}x^${exp - 1}`);
+          pasos.push('---');
+        });
 
-            console.log("Input original:", inputString, "Normalizado:", normalized);
-            return normalized;
-        }
+        pasos.forEach((paso, i) => {
+          setTimeout(() => {
+            const div = document.createElement("div");
+            div.textContent = paso;
+            pasosContainer.appendChild(div);
+          }, i * 1200); // velocidad entre pasos
+        });
 
-        // --- Funciones auxiliares para generar texto plano de los pasos de polinomios ---
-
-        // Formatea el coeficiente para texto plano (ej. 1 -> '', -1 -> '-', 2 -> '2')
-        function formatCoeffPlain(coeff, isLeading = false) {
-            if (coeff === 0) return '';
-            if (coeff === 1) return isLeading ? '' : '+'; // Only add + if not the very first term
-            if (coeff === -1) return '-';
-            if (coeff > 0) return (isLeading ? '' : '+') + coeff.toString();
-            return coeff.toString();
-        }
-        
-        // Formatea un término completo (coeficiente y variable con exponente) para texto plano
-        function formatTermPlain(coeff, exp, isLeading = false) {
-            if (coeff === 0) return '';
-            const sign = (coeff > 0 && !isLeading) ? '+' : '';
-            const absCoeff = Math.abs(coeff);
-
-            if (exp === 0) { // Constante
-                return `${sign}${absCoeff}`;
-            } else if (exp === 1) { // Término lineal (ej. x, 2x)
-                return `${sign}${absCoeff === 1 ? '' : absCoeff}x`;
-            } else { // Término con exponente (ej. x^2, 3x^3)
-                return `${sign}${absCoeff === 1 ? '' : absCoeff}x^${exp}`;
-            }
-        }
-
-        // Obtiene la expansión de (x+h)^n en texto plano
-        function getXPlusHPowerPlain(n) {
-            if (n === 1) return '(x + h)';
-            if (n === 2) return '(x^2 + 2xh + h^2)';
-            if (n === 3) return '(x^3 + 3x^2h + 3xh^2 + h^3)';
-            if (n === 4) return '(x^4 + 4x^3h + 6x^2h^2 + 4xh^3 + h^4)';
-            return `(x + h)^${n}`;
-        }
-
-        // Genera el término de f(x+h) expandido para un solo término ax^n en texto plano
-        function getExpandedFxPlusHTermPlain(coeff, exp) {
-            // Usamos math.js para expandir el nodo simbólico y luego convertirlo a cadena
-            let expandedNode;
-            if (exp === 0) {
-                return coeff.toString();
-            } else {
-                // Parseamos la expresión y la expandimos
-                expandedNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
-            }
-            return expandedNode.toString().replace(/\*/g, ''); // Eliminar '*' para un formato más limpio
-        }
-
-        // Genera el numerador simplificado (f(x+h) - f(x)) para un solo término ax^n en texto plano
-        function getNumeratorSimplifiedTermPlain(coeff, exp) {
-            if (exp === 0) return ''; // Constante se cancela
-            // Creamos nodos simbólicos y restamos f(x) de f(x+h)
-            let expandedFxPlusHNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
-            let fxNode = math.parse(`${coeff} * x^${exp}`);
-            let diffNode = math.subtract(expandedFxPlusHNode, fxNode).simplify();
-            return diffNode.toString().replace(/\*/g, '');
-        }
-
-        // Genera el término después de factorizar h para un solo término en texto plano
-        function getFactoredHTermPlain(coeff, exp) {
-            if (exp === 0) return ''; // No debería ocurrir aquí (constante se cancela antes)
-            let numeratorNode;
-            if (exp === 0) { // Should not happen but for safety
-                numeratorNode = math.parse('0');
-            } else {
-                let expandedFxPlusHNode = math.parse(`${coeff} * (${getXPlusHPowerPlain(exp)})`).expand();
-                let fxNode = math.parse(`${coeff} * x^${exp}`);
-                numeratorNode = math.subtract(expandedFxPlusHNode, fxNode).simplify();
-            }
-            
-            // Ahora, intentamos dividir por 'h'
-            const hNode = math.parse('h');
-            try {
-                // Math.js simplify puede manejar la división simbólica si la expresión lo permite
-                const factoredNode = math.simplify(math.divide(numeratorNode, hNode));
-                return factoredNode.toString().replace(/\*/g, '');
-            } catch (e) {
-                console.warn(`Could not symbolically divide by h for term ${coeff}x^${exp}:`, numeratorNode.toString(), e);
-                // Fallback si la división simbólica falla por alguna razón inesperada
-                if (exp === 1) return `${formatCoeffPlain(coeff, true)}`;
-                if (exp === 2) return `${formatCoeffPlain(2 * coeff, true)}x ${formatCoeffPlain(coeff)}h`.trim().replace(/^\+/, '');
-                if (exp === 3) return `${formatCoeffPlain(3 * coeff, true)}x^2 ${formatCoeffPlain(3 * coeff)}xh ${formatCoeffPlain(coeff)}h^2`.trim().replace(/^\+/, '');
-                if (exp === 4) return `${formatCoeffPlain(4 * coeff, true)}x^3 ${formatCoeffPlain(6 * coeff)}x^2h ${formatCoeffPlain(4 * coeff)}xh^2 ${formatCoeffPlain(coeff)}h^3`.trim().replace(/^\+/, '');
-                return `(${numeratorNode.toString().replace(/\*/g, '')}) / h`;
-            }
-        }
-
-        // Genera el término después de evaluar el límite h->0 para un solo término en texto plano
-        function getLimitEvaluatedTermPlain(coeff, exp) {
-            if (exp === 0) return ''; // Constante se deriva a 0
-            // Generamos el resultado esperado de la derivada y lo convertimos a cadena
-            let resultNode = math.parse(`${coeff * exp} * x^${exp - 1}`);
-            return resultNode.toString().replace(/\*/g, '');
-        }
-
-        // Une una lista de términos en texto plano con signos correctos (+ o -)
-        const joinPlainTerms = (arr) => arr.map((t, index) => {
-            let s = t.toString().trim();
-            if (s === '') return '';
-            if (s.startsWith('+') || s.startsWith('-')) return s;
-            if (index === 0 && parseFloat(s) >= 0 && !s.includes('x') && !s.includes('h')) return s; // For initial positive constants
-            if (index === 0 && s.match(/^[a-z]/)) return s; // For initial terms like 'x^2'
-            if (s.match(/^-/)) return s; // If it starts with a minus, keep it
-            return '+' + s;
-        }).filter(t => t !== '').join(''); // Filter out empty strings before joining
-
-        /**
-         * Genera los pasos detallados para la derivada de un polinomio usando la definición formal en texto plano.
-         * @param {Object[]} terms Parsed terms of the polynomial {coeff, exp}
-         * @param {string} originalFunctionPlain Plain text representation of the original function f(x)
-         * @returns {string} HTML string with detailed steps.
-         */
-        function generatePolynomialSteps(terms, originalFunctionPlain) {
-            let steps = '';
-
-            // Paso 1: Definición formal
-            steps += `
-                <div class="step">
-                    <h3>Paso 1: Escribir la definición formal de la derivada</h3>
-                    <p>Comenzamos con la definición fundamental de la derivada de una función f(x):</p>
-                    <div class="math-formula">
-                        f'(x) = lim h->0 (f(x + h) - f(x)) / h
-                    </div>
-                    <p>En nuestro caso, la función es f(x) = ${originalFunctionPlain}.</p>
-                </div>
-            `;
-
-            // Paso 2: Encontrar f(x + h)
-            let fxPlusHTermsPlain = []; // Términos como a(x+h)^n
-            let fxPlusHExpandedTermsPlain = []; // Términos después de la expansión como ax^2 + 2axh + ah^2
-
-            terms.forEach(term => {
-                if (term.exp === 0) { // Constante
-                    fxPlusHTermsPlain.push(term.coeff.toString());
-                    fxPlusHExpandedTermsPlain.push(term.coeff.toString());
-                } else {
-                    // Para la representación de f(x+h) (ej. 3(x+h)^2)
-                    let termCoeff = term.coeff === 1 ? '' : (term.coeff === -1 ? '-' : term.coeff);
-                    fxPlusHTermsPlain.push(`${termCoeff}${getXPlusHPowerPlain(term.exp)}`);
-                    
-                    // Para la expansión de f(x+h) (ej. 3(x^2 + 2xh + h^2))
-                    fxPlusHExpandedTermsPlain.push(getExpandedFxPlusHTermPlain(term.coeff, term.exp));
-                }
-            });
-
-            let fxPlusHPlain = joinPlainTerms(fxPlusHTermsPlain);
-            let fxPlusHExpandedPlain = joinPlainTerms(fxPlusHExpandedTermsPlain);
-
-            steps += `
-                <div class="step">
-                    <h3>Paso 2: Encontrar f(x + h)</h3>
-                    <p>En esta función, sustituimos x por (x + h) donde sea que aparezca x.</p>
-                    <div class="math-formula">
-                        f(x + h) = ${fxPlusHPlain}
-                    </div>
-                    <p>Ahora, expandimos los términos de (x+h)^n y distribuimos:</p>
-                    <div class="math-formula">
-                        f(x + h) = ${fxPlusHExpandedPlain}
-                    </div>
-                    <p>Esta es la función evaluada en un punto ligeramente desplazado de x.</p>
-                </div>
-            `;
-
-            // Paso 3: Sustituir en la fórmula del límite
-            steps += `
-                <div class="step">
-                    <h3>Paso 3: Sustituir f(x + h) y f(x) en la fórmula del límite</h3>
-                    <p>Ahora colocamos nuestras expresiones para f(x+h) y f(x) en la fórmula de la definición de la derivada:</p>
-                    <div class="math-formula">
-                        f'(x) = lim h->0 ((${fxPlusHExpandedPlain}) - (${originalFunctionPlain})) / h
-                    </div>
-                    <p>Esta expresión representa la tasa de cambio promedio de la función entre x y x+h.</p>
-                </div>
-            `;
-
-            // Paso 4: Simplificar el numerador
-            let numeratorSimplifiedPlain = '';
-            let cancellationExplanation = `<p>Todos los términos de f(x) se cancelan con sus contrapartes en f(x+h) que no contienen h.</p>`;
-            let remainingTermsPlain = [];
-            terms.forEach(term => {
-                const simplifiedTerm = getNumeratorSimplifiedTermPlain(term.coeff, term.exp);
-                if (simplifiedTerm !== '') {
-                    remainingTermsPlain.push(simplifiedTerm);
-                }
-            });
-            numeratorSimplifiedPlain = joinPlainTerms(remainingTermsPlain);
-            if (numeratorSimplifiedPlain === '') { // Should only happen for constant functions
-                 numeratorSimplifiedPlain = '0';
-                 cancellationExplanation = `<p>Como la función es una constante, f(x+h) - f(x) es 0.</p>`;
-            }
-
-            steps += `
-                <div class="step">
-                    <h3>Paso 4: Simplificar el numerador</h3>
-                    <p>Expandimos y combinamos términos semejantes en el numerador. Es crucial que todos los términos que <strong>no contienen h</strong> se cancelen con los términos de f(x).</p>
-                    <div class="math-formula">
-                        f'(x) = lim h->0 (${numeratorSimplifiedPlain}) / h
-                    </div>
-                    ${cancellationExplanation}
-                </div>
-            `;
-
-            // Paso 5: Factorizar h en el numerador
-            let afterFactoringHPlainParts = [];
-            terms.forEach(term => {
-                const factoredTerm = getFactoredHTermPlain(term.coeff, term.exp);
-                if (factoredTerm !== '') {
-                    afterFactoringHPlainParts.push(factoredTerm);
-                }
-            });
-            let afterFactoringHPlain = joinPlainTerms(afterFactoringHPlainParts);
-            if (afterFactoringHPlain === '') afterFactoringHPlain = '0'; // For constant functions
-
-            steps += `
-                <div class="step">
-                    <h3>Paso 5: Factorizar h en el numerador</h3>
-                    <p>Factorizamos h de todos los términos restantes del numerador. Este es un paso clave para eliminar la indeterminación 0/0 cuando h -> 0.</p>
-                    <div class="math-formula">
-                        f'(x) = lim h->0 (h * (${afterFactoringHPlain})) / h
-                    </div>
-                    <p>Ahora, todos los términos dentro del paréntesis no causarán división por cero.</p>
-                </div>
-            `;
-
-            // Paso 6: Cancelar h
-            steps += `
-                <div class="step">
-                    <h3>Paso 6: Cancelar h</h3>
-                    <p>Dado que h tiende a cero pero no es exactamente cero, podemos cancelar el término h del numerador y del denominador:</p>
-                    <div class="math-formula">
-                        f'(x) = lim h->0 ${afterFactoringHPlain}
-                    </div>
-                    <p>Este paso elimina la forma indeterminada y nos permite evaluar el límite directamente.</p>
-                </div>
-            `;
-
-            // Paso 7: Evaluar el límite
-            let finalResultAfterLimitPlainParts = [];
-            terms.forEach(term => {
-                const evaluatedTerm = getLimitEvaluatedTermPlain(term.coeff, term.exp);
-                if (evaluatedTerm !== '') {
-                    finalResultAfterLimitPlainParts.push(evaluatedTerm);
-                }
-            });
-            let finalResultAfterLimitPlain = joinPlainTerms(finalResultAfterLimitPlainParts);
-            if (finalResultAfterLimitPlain === '') finalResultAfterLimitPlain = '0'; // For constant functions
-
-
-            steps += `
-                <div class="step">
-                    <h3>Paso 7: Evaluar el límite</h3>
-                    <p>Finalmente, sustituimos h = 0 en la expresión restante para encontrar la derivada. Cualquier término que contenga h se volverá 0 en este punto.</p>
-                    <div class="math-formula">
-                        f'(x) = ${finalResultAfterLimitPlain}
-                    </div>
-                    <p>¡Y este es el resultado final de la derivada por el proceso largo!</p>
-                </div>
-            `;
-            return steps;
-        }
-
-        function calculateDerivative() {
-            const functionInputVal = functionInput.value.trim();
-            const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = ''; // Limpiar resultados anteriores
-
-            if (!functionInputVal) {
-                outputDiv.innerHTML = '<p class="error-message">Por favor, introduce una función.</p>';
-                return;
-            }
-
-            const normalizedInput = normalizeFunctionInput(functionInputVal);
-            let node, derivativeNode, finalDerivativePlain;
-
-            try {
-                node = math.parse(normalizedInput);
-                derivativeNode = math.derivative(node, 'x');
-                finalDerivativePlain = derivativeNode.toString(); // Get plain text string
-
-                // Post-procesamiento para el formato de la derivada final
-                finalDerivativePlain = finalDerivativePlain.replace(/\*/g, ''); // Eliminar *
-                finalDerivativePlain = finalDerivativePlain.replace(/x\^1/g, 'x'); // x^1 -> x
-                finalDerivativePlain = finalDerivativePlain.replace(/([+-]?\d+)x/g, '$1x'); // Ensure 2x not 2 x
-                finalDerivativePlain = finalDerivativePlain.replace(/([+-]?)1x/g, '$1x'); // 1x -> x, -1x -> -x
-                finalDerivativePlain = finalDerivativePlain.replace(/\(|\)/g, ''); // Remove parentheses, as it's plain text
-
-            } catch (error) {
-                outputDiv.innerHTML = `<p class="error-message">Error al interpretar la función. Asegúrate de usar un formato válido. Ejemplos: <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>. <br>Detalle: ${error.message}</p>`;
-                console.error("Error en parsing o cálculo de derivada final:", error);
-                return;
-            }
-
-            // Mostrar el resultado final primero
-            outputDiv.innerHTML = `
-                <h2>Derivada Final</h2>
-                <div class="final-result">
-                    f'(x) = ${finalDerivativePlain}
-                </div>
-                <button class="toggle-steps-button" onclick="toggleSteps()">Mostrar Pasos</button>
-                <div id="steps-container"></div>
-            `;
-            
-            // Intentar generar los pasos detallados para polinomios
-            let stepsContent = '';
-            let isPolynomial = true; // Asumimos que es un polinomio al inicio
-            let terms = []; // Almacenar {coeff, exp} de los términos del polinomio
-
-            // Identificar términos del polinomio para el desglose
-            const termRegex = /([+-]?\s*\d*\.?\d*x(?:\^\d+)?|[+-]?\s*\d+\.?\d*)/g;
-            let matches = normalizedInput.match(termRegex);
-            
-            if (matches) {
-                matches.forEach(m => {
-                    m = m.replace(/\s/g, ''); // Eliminar espacios dentro del término
-                    if (m === '') return; // Skip empty matches
-
-                    let coeff = 0;
-                    let exp = 0;
-                    let isXTerm = false;
-
-                    const xMatch = m.match(/([+-]?\d*\.?\d*)x(?:\^(\d+))?/);
-                    if (xMatch) {
-                        isXTerm = true;
-                        coeff = xMatch[1] === '-' ? -1 : parseFloat(xMatch[1] || '1');
-                        if (xMatch[1] === '+') coeff = 1; // Handle explicit +1x
-                        if (xMatch[1] === '') coeff = 1; // Handle x
-                        
-                        exp = parseFloat(xMatch[2] || '1');
-                    } else { // Constant term
-                        coeff = parseFloat(m);
-                        exp = 0;
-                    }
-
-                    if (isNaN(coeff) || (isXTerm && isNaN(exp))) { 
-                        isPolynomial = false; // Not a simple polynomial term
-                    } else {
-                        terms.push({ coeff, exp });
-                    }
-                });
-            } else {
-                isPolynomial = false; // No matches at all, not a polynomial
-            }
-
-            // Additional check: if it contains functions like sin, cos, sqrt, etc., it's not a polynomial
-            const complexFunctionRegex = /(sin|cos|tan|log|ln|exp|sqrt)\(/i;
-            if (complexFunctionRegex.test(normalizedInput)) {
-                isPolynomial = false;
-            }
-
-            // If it's a constant, ensure it's handled as a polynomial of degree 0
-            if (!normalizedInput.includes('x') && terms.length === 1 && terms[0].exp === 0 && !isNaN(terms[0].coeff)) {
-                isPolynomial = true; 
-            } else if (!normalizedInput.includes('x') && normalizedInput !== '0') { // Catch cases like 'pi' or 'e'
-                isPolynomial = false;
-            }
-            
-            // If the highest power is too high, or something else is complex, do not generate steps
-            const maxDegreeForSteps = 4; // Max degree for which we have manual step generation
-            let highestDegree = 0;
-            if (isPolynomial) {
-                terms.forEach(term => {
-                    if (term.exp > highestDegree) highestDegree = term.exp;
-                });
-                if (highestDegree > maxDegreeForSteps) {
-                    isPolynomial = false; // Degenerate to showing only final result
-                }
-            }
-
-
-            if (isPolynomial) {
-                stepsContent = generatePolynomialSteps(terms, node.toString().replace(/\*/g, '')); // Pass plain string
-            } else {
-                stepsContent = `
-                    <div class="info-message">
-                        <p>La generación automática de todos los pasos intermedios por definición de límite es muy compleja para funciones que no son polinomios, o que tienen combinaciones inusuales (ej. sin(x), e^x, sqrt(x) etc.), o polinomios de grado muy alto.</p>
-                        <p>Para este tipo de funciones, se muestra la derivada final utilizando las reglas de derivación.</p>
-                    </div>
-                `;
-            }
-            
-            const stepsContainer = document.getElementById('steps-container');
-            stepsContainer.innerHTML = stepsContent;
-        }
-
-        // Función para mostrar/ocultar los pasos
-        function toggleSteps() {
-            const stepsContainer = document.getElementById('steps-container');
-            const toggleButton = document.querySelector('.toggle-steps-button');
-            if (stepsContainer.style.display === 'none' || stepsContainer.style.display === '') {
-                stepsContainer.style.display = 'block';
-                toggleButton.textContent = 'Ocultar Pasos';
-            } else {
-                stepsContainer.style.display = 'none';
-                toggleButton.textContent = 'Mostrar Pasos';
-            }
-        }
-
-        // Calcular la derivada inicial al cargar la página (con el valor predeterminado)
-        document.addEventListener('DOMContentLoaded', calculateDerivative);
-    </script>
+      } catch (e) {
+        pasosContainer.innerHTML = `<div style="color:red;">⚠️ Error: asegúrate de ingresar una función válida como "2x^3 + 3x^2 + x"</div>`;
+      }
+    }
+  </script>
 </body>
 </html>
