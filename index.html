@@ -2,119 +2,172 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Derivada por Definición</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Derivadas por Límite (Mejorada)</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #eef2f3;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+      margin: 0;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      max-width: 900px;
+      width: 100%;
+    }
+    h1 { color: #2c3e50; text-align: center; }
+    .info-message, .error-message {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
       text-align: center;
     }
-
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      font-size: 16px;
-      width: 300px;
-      max-width: 90%;
-    }
-
-    #resultado {
-      background-color: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 20px;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    p {
-      line-height: 1.7;
-    }
+    .info-message { background: #e0f7fa; border: 1px solid #00acc1; color: #00838f; }
+    .error-message { background: #ffebe9; border: 1px solid #dc3545; color: #dc3545; }
+    .input-section input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1.1em; }
+    button { padding: 12px 25px; border-radius: 8px; font-size: 1.1em; cursor: pointer; }
+    button.operator { background: #007bff; color: white; margin: 5px; }
+    button.func { background: #c3e6cb; }
+    button.special { background: #ffecb3; }
+    button:hover { opacity: 0.9; }
+    .output-section { margin-top: 30px; }
+    .final-result { background: #e6ffe6; border: 2px solid #28a745; padding: 20px; margin: auto; font-size: 1.5em; font-weight: bold; }
+    .toggle-steps-button { display:block; margin: 20px auto; background: #6c757d; color: white; }
+    #steps-container .step { margin-bottom: 25px; padding: 20px; background: #f9fbfb; border-radius: 10px; }
+    .math-formula { background: #e9f5ff; border-left: 5px solid #007bff; padding: 15px; font-family: monospace; overflow-x: auto; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
 </head>
 <body>
-  <h1>Derivada por definición</h1>
-  <p>Escribe una función polinómica en términos de x (ejemplo: x**2 + 3*x + 2)</p>
-  <input type="text" id="funcion" placeholder="Ejemplo: x**2 + 3*x + 2">
-  <br>
-  <button onclick="calcularDerivada()">Calcular derivada paso a paso</button>
-
-  <div id="resultado"></div>
+  <div class="container">
+    <h1>Calculadora de Derivadas por Límite</h1>
+    <p class="info-message">
+      Esta herramienta muestra la derivada usando <strong>la definición por límite</strong> paso a paso para funciones polinómicas. Si es otra función (trig, exp, raíz…), se muestra solo la derivada final.
+    </p>
+    <div class="input-section">
+      <label for="functionInput">Ingresa tu función f(x):</label>
+      <input type="text" id="functionInput" value="x^2 + 3x">
+      <div class="keyboard">
+        <button onclick="insertChar('x')">x</button>
+        <button onclick="insertChar('^')" class="operator">^</button>
+        <button onclick="insertChar('+')" class="operator">+</button>
+        <button onclick="insertChar('-')" class="operator">−</button>
+        <button onclick="insertChar('*')" class="operator">·</button>
+        <button onclick="insertChar('/')">/</button>
+        <button onclick="insertChar('(')" class="operator">(</button>
+        <button onclick="insertChar(')')" class="operator">)</button>
+        <button onclick="insertChar('sin(')" class="func">sin(</button>
+        <button onclick="insertChar('cos(')" class="func">cos(</button>
+        <button onclick="insertChar('tan(')" class="func">tan(</button>
+        <button onclick="insertChar('ln(')" class="func">ln(</button>
+        <button onclick="insertChar('exp(')" class="func">exp(</button>
+        <button onclick="insertChar('sqrt(')" class="func">√(</button>
+        <button onclick="insertFraction()" class="special">frac</button>
+        <button onclick="insertChar('pi')" class="special">π</button>
+        <button onclick="insertChar('e')" class="special">e</button>
+        <button onclick="deleteChar()">DEL</button>
+      </div>
+      <button onclick="calculateDerivative()" style="background:#28a745;color:white;">Calcular Derivada</button>
+    </div>
+    <div id="output" class="output-section"></div>
+  </div>
 
   <script>
-    function evaluar(funcion, x) {
+    const input = document.getElementById('functionInput');
+
+    function insertChar(char) {
+      const start = input.selectionStart;
+      input.value = input.value.slice(0, start) + char + input.value.slice(input.selectionEnd);
+      input.selectionEnd = start + char.length;
+      input.focus();
+    }
+    function insertFraction() {
+      insertChar('(/)');
+      input.selectionEnd = input.selectionStart - 2;
+    }
+    function deleteChar() {
+      const s = input.selectionStart, e = input.selectionEnd;
+      input.value = input.value.slice(0, s > e ? e : s) + input.value.slice(e > s ? e : s + 1);
+      input.selectionEnd = s > e ? s : s;
+      input.focus();
+    }
+
+    function normalize(str) {
+      let s = str.toLowerCase().replace(/\s/g, '')
+                .replace(/([0-9])x/g,'$1*x')
+                .replace(/x\^/g,'x^')
+                .replace(/\*\*/g,'^')
+                .replace(/\(\/\)/g,'/');
+      return s;
+    }
+
+    function calculateDerivative() {
+      const raw = input.value.trim();
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+      if (!raw) {
+        output.innerHTML = '<p class="error-message">Por favor ingresa una función.</p>'; return;
+      }
+      const norm = normalize(raw);
+
+      let node;
+      try { node = math.parse(norm); }
+      catch(err) {
+        output.innerHTML = `<p class="error-message">Función inválida: ${err.message}</p>`;
+        return;
+      }
+
+      let derivative;
       try {
-        return eval(funcion.replace(/x/g, `(${x})`));
-      } catch {
-        throw new Error("Error al evaluar la función. Asegúrate de escribirla correctamente.");
+        derivative = math.derivative(node, 'x');
+      } catch(err) {
+        output.innerHTML = `<p class="error-message">No se puede derivar: ${err.message}</p>`;
+        return;
+      }
+
+      const derivPlain = derivative.toString().replace(/\*/g,'').replace(/\^1/g,'').replace(/([+-]?)1x/g,'$1x');
+      output.innerHTML = `<h2>Derivada Final</h2><div class="final-result">f'(x) = ${derivPlain}</div>`;
+
+      const pol = math.simplify(node);
+      const degree = pol ? (pol.degree ? pol.degree('x') : NaN) : NaN;
+      if (!isNaN(degree)) {
+        const steps = generateStepsNatural(pol, derivPlain);
+        output.innerHTML += `<button class="toggle-steps-button" onclick="toggleSteps()">Mostrar Pasos</button><div id="steps-container" style="display:none;">${steps}</div>`;
+      } else {
+        output.innerHTML += `<p class="info-message">No se muestran pasos detallados para funciones no polinómicas.</p>`;
       }
     }
 
-    function derivadaPorDefinicion(funcion, x) {
-      const h = 0.00001;
-      const fx = evaluar(funcion, x);
-      const fxh = evaluar(funcion, x + h);
-      const derivada = (fxh - fx) / h;
+    function generateStepsNatural(polyNode, derivPlain) {
+      const coeffs = polyNode.coefficients ? polyNode.coefficients('x') : null;
+      if (!coeffs) return '';
+      let html = '';
+      html += `<div class="step"><h3>Paso 1</h3><p>Usamos la definición de derivada: La derivada de una función en un punto x es el límite cuando h tiende a 0 del cociente de [f(x + h) menos f(x)] dividido entre h.</p></div>`;
 
-      const pasos = [];
+      coeffs.forEach(({ value: coef }, i, arr) => {
+        const exp = arr.length - i - 1;
+        if (coef === 0) return;
+        html += `<div class="step"><h3>Paso ${i + 2}</h3>`;
+        html += `<p>Derivamos el término ${coef}x elevado a ${exp}. Para esto, sustituimos x por (x + h) y luego restamos el valor original con x. Eso se divide por h y al aplicar el límite, obtenemos la derivada.</p>`;
+        html += `<p>El resultado es: ${coef * exp}x elevado a ${exp - 1}.</p></div>`;
+      });
 
-      pasos.push("Paso 1: Se parte de la definición de la derivada.");
-      pasos.push("f'(x) = lim h→0 [f(x + h) - f(x)] / h");
-      pasos.push("Esta fórmula representa el valor de la pendiente de la recta tangente a la función en un punto x específico.");
-
-      pasos.push("");
-      pasos.push(`Paso 2: Se tiene la función f(x) = ${funcion}`);
-      pasos.push(`Evaluaremos la derivada en el punto x = ${x}`);
-
-      pasos.push("");
-      pasos.push(`Paso 3: Sustituimos x en la función con (x + h).`);
-      pasos.push(`Calculamos f(x + h) usando un valor muy pequeño de h cercano a 0.`);
-      pasos.push(`f(${x} + h) = f(${(x + h).toFixed(5)}) = ${fxh.toFixed(5)}`);
-
-      pasos.push("");
-      pasos.push(`Paso 4: Calculamos f(x)`);
-      pasos.push(`f(${x}) = ${fx.toFixed(5)}`);
-
-      pasos.push("");
-      pasos.push(`Paso 5: Aplicamos la fórmula de la derivada:`);
-      pasos.push(`[f(${x} + h) - f(${x})] / h = [${fxh.toFixed(5)} - ${fx.toFixed(5)}] / ${h}`);
-
-      pasos.push("");
-      pasos.push(`Paso 6: Realizamos la resta en el numerador:`);
-      pasos.push(`${(fxh - fx).toFixed(5)} / ${h}`);
-
-      pasos.push("");
-      pasos.push(`Paso 7: Finalmente, dividimos entre h para obtener la derivada aproximada:`);
-      pasos.push(`Derivada ≈ ${(derivada).toFixed(5)}`);
-
-      pasos.push("");
-      pasos.push(`Resultado: La derivada aproximada de f(x) en x = ${x} es ${derivada.toFixed(5)}`);
-
-      return pasos;
+      html += `<div class="step"><h3>Resultado Final</h3><p>Sumando todos los resultados obtenidos, la derivada es:</p><div class="math-formula">f′(x) = ${derivPlain}</div></div>`;
+      return html;
     }
 
-    function calcularDerivada() {
-      const funcion = document.getElementById("funcion").value;
-      const resultado = document.getElementById("resultado");
-      resultado.innerHTML = "";
-
-      const x = 1; // Puedes cambiar este valor si deseas evaluar en otro punto
-
-      try {
-        const pasos = derivadaPorDefinicion(funcion, x);
-
-        pasos.forEach(paso => {
-          const parrafo = document.createElement("p");
-          parrafo.textContent = paso;
-          resultado.appendChild(parrafo);
-        });
-      } catch (error) {
-        resultado.innerHTML = `<p style="color:red;">⚠️ ${error.message}</p>`;
-      }
+    function toggleSteps() {
+      const cont = document.getElementById('steps-container');
+      cont.style.display = cont.style.display === 'none' ? 'block' : 'none';
     }
   </script>
 </body>
