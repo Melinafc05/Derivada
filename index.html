@@ -110,8 +110,9 @@
     <h1>Calculadora de Derivadas por Límite</h1>
     <p class="info-message">
       Esta herramienta muestra la derivada usando
-      <strong>la definición por límite</strong> paso a paso para funciones polinómicas. Si es
-      otra función (trig, exp, raíz…), se muestra solo la derivada final.
+      <strong>la definición por límite</strong> paso a paso para funciones
+      polinómicas. Si es otra función (trig, exp, raíz…), se muestra solo la
+      derivada final.
     </p>
     <div class="input-section">
       <label for="functionInput">Ingresa tu función f(x):</label>
@@ -164,8 +165,7 @@
       const s = input.selectionStart,
         e = input.selectionEnd;
       input.value =
-        input.value.slice(0, s > e ? e : s) +
-        input.value.slice(e > s ? e : s + 1);
+        input.value.slice(0, s > e ? e : s) + input.value.slice(e > s ? e : s + 1);
       input.selectionEnd = s > e ? s : s;
       input.focus();
     }
@@ -213,6 +213,7 @@
         .replace(/\*/g, "")
         .replace(/\^1/g, "")
         .replace(/([+-]?)1x/g, "$1x");
+
       output.innerHTML = `<h2>Derivada Final</h2><div class="final-result">f'(x) = ${derivPlain}</div>`;
 
       const pol = math.simplify(node);
@@ -225,27 +226,64 @@
       }
     }
 
+    // Función para factorizar (x + h)^n usando binomio de Newton para explicar la expansión
+    function binomialExpansion(x, h, n) {
+      let terms = [];
+      for (let k = 0; k <= n; k++) {
+        const binom = factorial(n) / (factorial(k) * factorial(n - k));
+        // No ponemos variables en código, solo para generar texto luego
+        terms.push({ coef: binom, powerX: n - k, powerH: k });
+      }
+      return terms;
+    }
+    function factorial(num) {
+      if (num === 0 || num === 1) return 1;
+      let res = 1;
+      for (let i = 2; i <= num; i++) res *= i;
+      return res;
+    }
+
     function generateStepsNatural(polyNode, derivPlain) {
       const coeffs = polyNode.coefficients ? polyNode.coefficients("x") : null;
       if (!coeffs) return "";
+
       let html = "";
-      html += `<div class="step"><h3>Paso 1</h3><p>Usamos la definición de derivada: La derivada de una función en un punto x es el límite cuando h tiende a 0 del cociente entre la diferencia de la función evaluada en (x + h) y en x, dividido entre h.</p></div>`;
+      html += `<div class="step">
+      <h3>Paso 1</h3>
+      <p>Usamos la definición de derivada: La derivada de una función en un punto x es el límite, cuando h se acerca a cero, del cociente entre la diferencia de la función evaluada en x + h y en x, dividido entre h.</p>
+      <p>Es decir, f'(x) = límite cuando h tiende a 0 de [f(x+h) − f(x)] / h.</p>
+      </div>`;
 
       coeffs.forEach(({ value: coef }, i, arr) => {
         const exp = arr.length - i - 1;
         if (coef === 0) return;
 
-        // Aquí la explicación extendida con cómo se resuelve el paso
-        html += `<div class="step"><h3>Paso ${i + 2}</h3>`;
-        html += `<p>Consideramos el término ${coef} multiplicado por x elevado a ${exp}.</p>`;
-        html += `<p>Primero sustituimos x por (x + h) en este término, quedando: ${coef} multiplicado por (x + h) elevado a ${exp}.</p>`;
-        html += `<p>Luego calculamos la diferencia entre este nuevo término y el original, es decir, restamos ${coef} por x elevado a ${exp}.</p>`;
-        html += `<p>El resultado de esta diferencia lo dividimos entre h para formar el cociente fundamental.</p>`;
-        html += `<p>Finalmente, al aplicar el límite cuando h tiende a 0, simplificamos y obtenemos el resultado de la derivada de este término, que es: ${coef * exp} multiplicado por x elevado a ${exp - 1}.</p>`;
-        html += `</div>`;
+        // Expansión con lenguaje natural
+        let expansionDescription = "";
+
+        if (exp === 0) {
+          // Término constante
+          expansionDescription = `El término constante ${coef} no cambia al sustituir x por (x + h), por lo tanto, su derivada es 0.`;
+        } else if (exp === 1) {
+          // Término lineal
+          expansionDescription = `Para el término ${coef}x, sustituimos x por (x + h), obteniendo ${coef}(x + h). Luego, calculamos la diferencia: ${coef}(x + h) − ${coef}x, que simplifica a ${coef}h. Dividimos esta diferencia entre h y al aplicar el límite cuando h tiende a cero, obtenemos ${coef}, que es la derivada del término lineal.`;
+        } else {
+          // Término con exponente mayor o igual a 2
+          expansionDescription = `Para el término ${coef}x elevado a ${exp}, sustituimos x por (x + h), obteniendo ${coef}(x + h) elevado a ${exp}. Ahora debemos expandir este binomio. Según el teorema del binomio de Newton, la expansión incluye varios términos donde las potencias de x y h se combinan. Restamos luego el término original ${coef}x elevado a ${exp} para eliminar los términos comunes. La diferencia resultante la dividimos entre h y finalmente aplicamos el límite cuando h tiende a cero. Al hacer esto, todos los términos que contienen h desaparecen excepto uno, y el resultado final es ${coef * exp}x elevado a ${exp - 1}, que es la derivada del término.`;
+        }
+
+        html += `<div class="step">
+        <h3>Paso ${i + 2}</h3>
+        <p>${expansionDescription}</p>
+        </div>`;
       });
 
-      html += `<div class="step"><h3>Resultado Final</h3><p>Sumamos las derivadas de todos los términos para obtener la derivada completa:</p><div class="math-formula">f′(x) = ${derivPlain}</div></div>`;
+      html += `<div class="step">
+      <h3>Resultado Final</h3>
+      <p>Sumamos todas las derivadas parciales obtenidas para encontrar la derivada total de la función:</p>
+      <div class="math-formula">f'(x) = ${derivPlain}</div>
+      </div>`;
+
       return html;
     }
 
